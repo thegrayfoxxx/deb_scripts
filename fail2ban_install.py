@@ -23,4 +23,5 @@ with open(path_to_jail_config, "w") as f:
 subprocess.run(["systemctl", "enable", "fail2ban"])
 subprocess.run(["systemctl", "restart", "fail2ban"])
 time.sleep(1)
+subprocess.run(["systemctl", "status", "fail2ban"])
 subprocess.run(["fail2ban-client", "status", "sshd"])
