@@ -44,6 +44,7 @@ findtime = 1h
         subprocess.run(["rm", "-f", self.path_to_jail_config])
 
     def interactive_run(self):
+        print("Fail2Ban install")
         user_input = input("Exit - 0\nInstall - 1\nUninstall - 2\n")
         match user_input:
             case "0":
