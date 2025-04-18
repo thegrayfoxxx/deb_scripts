@@ -1,8 +1,8 @@
 import subprocess
 import time
 
-subprocess.run(["apt update"])
-subprocess.run(["apt install", "fail2ban", "-y"])
+subprocess.run(["apt", "update"])
+subprocess.run(["apt", "install", "fail2ban", "-y"])
 
 path_to_jail_config = "/etc/fail2ban/jail.d/sshd.local"
 
