@@ -34,6 +34,7 @@ net.ipv4.tcp_congestion_control=bbr
         subprocess.run(["sysctl", "net.ipv4.tcp_congestion_control"])
         subprocess.run(["sysctl", "net.core.default_qdisc"])
 
+
 if __name__ == "__main__":
     user_input = input("Exit - 0\nInstall - 1\nUninstall - 2\n")
     bbr = BBR()
