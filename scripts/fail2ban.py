@@ -34,12 +34,14 @@ findtime = 1h
         subprocess.run(["apt", "remove", "fail2ban", "-y"])
         subprocess.run(["rm", "-f", self.path_to_jail_config])
 
+
 if __name__ == "__main__":
-    user_input = input("exit - 0\ninstall - 1\nuninstall - 2\n")
+    user_input = input("Exit - 0\nInstall - 1\nUninstall - 2\n")
     installer = Fail2Ban()
-    if user_input == "0":
-        exit(0)
-    elif user_input == "1":
-        installer.install_fail2ban()
-    elif user_input == "2":
-        installer.uninstall_fail2ban()
+    match user_input:
+        case "0":
+            exit(0)
+        case "1":
+            installer.install_fail2ban()
+        case "2":
+            installer.uninstall_fail2ban()
