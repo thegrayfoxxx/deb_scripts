@@ -21,13 +21,13 @@ net.ipv4.tcp_congestion_control=bbr
     def uninstall_bbr(self):
         with open(self.path_to_sysctl_config, "r") as f:
             lines = f.readlines()
-            new_lines = [
-                line
-                for line in lines
-                if not line.startswith("net.ipv4.tcp_congestion_control")
-            ]
+            for line in lines:
+                if line.startswith(
+                    "net.ipv4.tcp_congestion_control"
+                ) or line.startswith("net.core.default_qdisc"):
+                    lines.remove(line)
             with open(self.path_to_sysctl_config, "w") as f:
-                f.writelines(new_lines)
+                f.writelines(lines)
 
 
 if __name__ == "__main__":
