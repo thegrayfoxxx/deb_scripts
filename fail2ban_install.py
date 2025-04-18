@@ -1,7 +1,8 @@
-import os
+import subprocess
+import time
 
-os.system("apt update")
-os.system("apt install fail2ban")
+subprocess.run(["apt update"])
+subprocess.run(["apt install", "fail2ban", "-y"])
 
 path_to_jail_config = "/etc/fail2ban/jail.d/sshd.local"
 
@@ -19,6 +20,7 @@ findtime = 1h
 with open(path_to_jail_config, "w") as f:
     f.write(jail_config)
 
-os.system("systemctl enable fail2ban")
-os.system("systemctl restart fail2ban")
-os.system("fail2ban-client status sshd")
+subprocess.run(["systemctl", "enable", "fail2ban"])
+subprocess.run(["systemctl", "restart", "fail2ban"])
+time.sleep(1)
+subprocess.run(["fail2ban-client", "status", "sshd"])
