@@ -1,5 +1,5 @@
-import time
 import subprocess
+import time
 
 bbr_config = """
 net.core.default_qdisc=fq
