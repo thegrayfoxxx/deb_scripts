@@ -16,32 +16,44 @@ bantime = 1d
 findtime = 1h
 """
 
-    def install_fail2ban(self):
-        subprocess.run(["apt", "install", "fail2ban", "-y"])
-
-        with open(self.path_to_jail_config, "w") as f:
-            f.write(self.jail_str_config)
-
+    def enable_fail2ban(self):
         subprocess.run(["systemctl", "enable", "fail2ban"])
         subprocess.run(["systemctl", "restart", "fail2ban"])
         time.sleep(1)
         subprocess.run(["systemctl", "status", "fail2ban"])
         subprocess.run(["fail2ban-client", "status", "sshd"])
 
-    def uninstall_fail2ban(self):
+    def disable_fail2ban(self):
         subprocess.run(["systemctl", "stop", "fail2ban"])
         subprocess.run(["systemctl", "disable", "fail2ban"])
+        time.sleep(1)
+        subprocess.run(["systemctl", "status", "fail2ban"])
+        subprocess.run(["fail2ban-client", "status", "sshd"])
+
+    def install_fail2ban(self):
+        subprocess.run(["apt", "install", "fail2ban", "-y"])
+
+        with open(self.path_to_jail_config, "w") as f:
+            f.write(self.jail_str_config)
+
+        self.enable_fail2ban()
+
+    def uninstall_fail2ban(self):
+        self.disable_fail2ban()
         subprocess.run(["apt", "remove", "fail2ban", "-y"])
         subprocess.run(["rm", "-f", self.path_to_jail_config])
 
+    def interactive_run(self):
+        user_input = input("Exit - 0\nInstall - 1\nUninstall - 2\n")
+        match user_input:
+            case "0":
+                exit(0)
+            case "1":
+                self.install_fail2ban()
+            case "2":
+                self.uninstall_fail2ban()
+
 
 if __name__ == "__main__":
-    user_input = input("Exit - 0\nInstall - 1\nUninstall - 2\n")
     installer = Fail2Ban()
-    match user_input:
-        case "0":
-            exit(0)
-        case "1":
-            installer.install_fail2ban()
-        case "2":
-            installer.uninstall_fail2ban()
+    installer.interactive_run()
