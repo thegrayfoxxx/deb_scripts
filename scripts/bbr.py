@@ -10,7 +10,7 @@ net.core.default_qdisc=fq_codel
 net.ipv4.tcp_congestion_control=bbr
 """
 
-    def install_bbr(self):
+    def enable_bbr(self):
         with open(self.path_to_sysctl_config, "a") as f:
             f.write(self.bbr_config)
 
@@ -19,7 +19,7 @@ net.ipv4.tcp_congestion_control=bbr
         subprocess.run(["sysctl", "net.ipv4.tcp_congestion_control"])
         subprocess.run(["sysctl", "net.core.default_qdisc"])
 
-    def uninstall_bbr(self):
+    def disable_bbr(self):
         with open(self.path_to_sysctl_config, "r") as f:
             lines = f.readlines()
             for line in lines:
@@ -34,14 +34,18 @@ net.ipv4.tcp_congestion_control=bbr
         subprocess.run(["sysctl", "net.ipv4.tcp_congestion_control"])
         subprocess.run(["sysctl", "net.core.default_qdisc"])
 
+    def interactive_run(self):
+        print("BBR install")
+        user_input = input("Exit - 0\nEnable - 1\nDisable - 2\n")
+        bbr = BBR()
+        match user_input:
+            case "0":
+                exit(0)
+            case "1":
+                bbr.enable_bbr()
+            case "2":
+                bbr.disable_bbr()
 
 if __name__ == "__main__":
-    user_input = input("Exit - 0\nInstall - 1\nUninstall - 2\n")
-    bbr = BBR()
-    match user_input:
-        case "0":
-            exit(0)
-        case "1":
-            bbr.install_bbr()
-        case "2":
-            bbr.uninstall_bbr()
+    installer = BBR()
+    installer.interactive_run()
