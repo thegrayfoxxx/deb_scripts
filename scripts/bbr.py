@@ -46,6 +46,7 @@ net.ipv4.tcp_congestion_control=bbr
             case "2":
                 bbr.disable_bbr()
 
+
 if __name__ == "__main__":
     installer = BBR()
     installer.interactive_run()
