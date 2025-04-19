@@ -142,4 +142,4 @@ git commit -m "feat: add awesome feature"
 
 ## 📜 Лицензия
 
-MIT License © 2024 thegrayfoxxx
+MIT License © 2025 thegrayfoxxx
