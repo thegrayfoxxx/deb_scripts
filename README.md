@@ -1,8 +1,8 @@
 # 🐍 DevOps Automation Scripts
 
 ![GitHub](https://img.shields.io/github/license/thegrayfoxxx/deb_scripts?color=blue)
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)
-![UV](https://img.shields.io/badge/UV-0.1%2B-orange?logo=python)
+![Python](https://img.shields.io/badge/Python-3.12%2B-blue?logo=python)
+![UV](https://img.shields.io/badge/UV-0.6.0%2B-orange?logo=python)
 
 **Набор Python-скриптов для автоматизации DevOps-задач в Linux-окружении**
 Упрощение настройки серверов, оптимизации сетевых параметров и безопасности.
