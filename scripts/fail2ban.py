@@ -45,7 +45,7 @@ findtime = 1h
 
     def interactive_run(self):
         print("Fail2Ban install")
-        user_input = input("Exit - 0\nInstall - 1\nUninstall - 2\n")
+        user_input = str(input("Exit - 0\nInstall - 1\nUninstall - 2\n"))
         match user_input:
             case "0":
                 exit(0)
@@ -53,6 +53,8 @@ findtime = 1h
                 self.install_fail2ban()
             case "2":
                 self.uninstall_fail2ban()
+            case _:
+                print("Invalid input")
 
 
 if __name__ == "__main__":
