@@ -1,6 +1,8 @@
 import subprocess as sub
 import time
 
+from utils.subprocess_utils import run_commands
+
 
 class Fail2Ban:
     def __init__(self):
@@ -16,32 +18,56 @@ bantime = 1d
 findtime = 1h
 """
 
-    def enable_fail2ban(self):
-        sub.run(["systemctl", "enable", "fail2ban"])
-        sub.run(["systemctl", "restart", "fail2ban"])
-        time.sleep(1)
-        sub.run(["systemctl", "status", "fail2ban"])
-        sub.run(["fail2ban-client", "status", "sshd"])
-
-    def disable_fail2ban(self):
-        sub.run(["systemctl", "stop", "fail2ban"])
-        sub.run(["systemctl", "disable", "fail2ban"])
-        time.sleep(1)
-        sub.run(["systemctl", "status", "fail2ban"])
-        sub.run(["fail2ban-client", "status", "sshd"])
-
     def install_fail2ban(self):
-        sub.run(["apt", "install", "fail2ban", "-y"])
+        run_commands([["apt", "install", "fail2ban", "-y"]])
 
         with open(self.path_to_jail_config, "w") as f:
             f.write(self.jail_str_config)
 
-        self.enable_fail2ban()
+        run_commands(
+            [
+                ["systemctl", "enable", "fail2ban"],
+                ["systemctl", "restart", "fail2ban"],
+            ]
+        )
+
+        status_service = ""
+        while status_service != "active":
+            status_service = sub.run(
+                ["systemctl", "is-active", "fail2ban"], text=True, capture_output=True
+            ).stdout.strip()
+            time.sleep(0.5)
+
+        run_commands(
+            [
+                ["systemctl", "status", "fail2ban"],
+                ["fail2ban-client", "status", "sshd"],
+            ]
+        )
 
     def uninstall_fail2ban(self):
-        self.disable_fail2ban()
-        sub.run(["apt", "remove", "fail2ban", "-y"])
-        sub.run(["rm", "-f", self.path_to_jail_config])
+        run_commands(
+            [
+                ["systemctl", "disable", "fail2ban"],
+                ["systemctl", "stop", "fail2ban"],
+            ]
+        )
+
+        status_service = ""
+        while status_service != "inactive":
+            status_service = sub.run(
+                ["systemctl", "is-active", "fail2ban"], text=True, capture_output=True
+            ).stdout.strip()
+            time.sleep(0.5)
+
+        run_commands(
+            [
+                ["systemctl", "status", "fail2ban"],
+                ["fail2ban-client", "status", "sshd"],
+                ["apt", "remove", "fail2ban", "-y"],
+                ["rm", "-f", self.path_to_jail_config],
+            ]
+        )
 
     def interactive_run(self):
         print("Fail2Ban install")
