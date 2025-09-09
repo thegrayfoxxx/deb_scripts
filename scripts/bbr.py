@@ -1,5 +1,6 @@
-import subprocess as sub
 import time
+
+from utils.subprocess_utils import run_commands
 
 
 class BBR:
@@ -14,10 +15,11 @@ net.ipv4.tcp_congestion_control=bbr
         with open(self.path_to_sysctl_config, "a") as f:
             f.write(self.bbr_config)
 
-        sub.run(["sysctl", "-p"])
+        run_commands([["sysctl", "-p"]])
         time.sleep(1)
-        sub.run(["sysctl", "net.ipv4.tcp_congestion_control"])
-        sub.run(["sysctl", "net.core.default_qdisc"])
+        run_commands(
+            [["sysctl", "net.ipv4.tcp_congestion_control"], ["sysctl", "net.core.default_qdisc"]]
+        )
 
     def disable_bbr(self):
         with open(self.path_to_sysctl_config, "r") as f:
@@ -29,10 +31,15 @@ net.ipv4.tcp_congestion_control=bbr
                     lines.remove(line)
             with open(self.path_to_sysctl_config, "w") as f:
                 f.writelines(lines)
-        sub.run(["sysctl", "net.ipv4.tcp_congestion_control=cubic"])
-        sub.run(["sysctl", "net.core.default_qdisc=fq_codel"])
-        sub.run(["sysctl", "net.ipv4.tcp_congestion_control"])
-        sub.run(["sysctl", "net.core.default_qdisc"])
+
+        run_commands(
+            [
+                ["sysctl", "net.ipv4.tcp_congestion_control=cubic"],
+                ["sysctl", "net.core.default_qdisc=fq_codel"],
+                ["sysctl", "net.ipv4.tcp_congestion_control"],
+                ["sysctl", "net.core.default_qdisc"],
+            ]
+        )
 
     def interactive_run(self):
         print("BBR install")
