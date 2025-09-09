@@ -3,14 +3,15 @@ from utils.subprocess_utils import run_commands
 
 class Docker:
     def install_docker(self):
-        commands = [
-            ["apt", "update"],
-            ["apt", "install", "-y", "curl"],
-            ["curl", "-fsSL", "https://get.docker.com", "-o", "get-docker.sh"],
-            ["sh", "./get-docker.sh"],
-            ["rm", "./get-docker.sh"],
-        ]
-        run_commands(commands)
+        run_commands(
+            [
+                ["apt", "update"],
+                ["apt", "install", "-y", "curl"],
+                ["curl", "-fsSL", "https://get.docker.com", "-o", "get-docker.sh"],
+                ["sh", "./get-docker.sh"],
+                ["rm", "./get-docker.sh"],
+            ]
+        )
 
     def interactive_run(self):
         print("Docker install")
