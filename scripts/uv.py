@@ -3,15 +3,16 @@ from utils.subprocess_utils import run_commands
 
 class UV:
     def install_uv(self):
-        commands = [
-            ["apt", "update"],
-            ["apt", "install", "-y", "curl"],
-            ["curl", "-LsSf", "https://astral.sh/uv/install.sh", "-o", "uv_install.sh"],
-            ["sh", "./uv_install.sh"],
-            ["bash", "-c", 'source "$HOME/.local/bin/env"'],
-            ["rm", "./uv_install.sh"],
-        ]
-        run_commands(commands)
+        run_commands(
+            [
+                ["apt", "update"],
+                ["apt", "install", "-y", "curl"],
+                ["curl", "-LsSf", "https://astral.sh/uv/install.sh", "-o", "uv_install.sh"],
+                ["sh", "./uv_install.sh"],
+                ["bash", "-c", 'source "$HOME/.local/bin/env"'],
+                ["rm", "./uv_install.sh"],
+            ]
+        )
 
     def interactive_run(self):
         print("UV install")
