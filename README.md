@@ -56,7 +56,7 @@ pip install -r requirements.txt
 
 ## 🖥️ Запуск
 
-### UV
+### Запуск с помощью UV
 ```bash
 uv run main.py
 ```
