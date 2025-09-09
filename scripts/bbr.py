@@ -23,9 +23,9 @@ net.ipv4.tcp_congestion_control=bbr
         with open(self.path_to_sysctl_config, "r") as f:
             lines = f.readlines()
             for line in lines:
-                if line.startswith(
-                    "net.ipv4.tcp_congestion_control"
-                ) or line.startswith("net.core.default_qdisc"):
+                if line.startswith("net.ipv4.tcp_congestion_control") or line.startswith(
+                    "net.core.default_qdisc"
+                ):
                     lines.remove(line)
             with open(self.path_to_sysctl_config, "w") as f:
                 f.writelines(lines)
@@ -36,7 +36,7 @@ net.ipv4.tcp_congestion_control=bbr
 
     def interactive_run(self):
         print("BBR install")
-        user_input = input("Exit - 0\nEnable - 1\nDisable - 2\n")
+        user_input = str(input("Exit - 0\nEnable - 1\nDisable - 2\n"))
         bbr = BBR()
         match user_input:
             case "0":
@@ -45,6 +45,8 @@ net.ipv4.tcp_congestion_control=bbr
                 bbr.enable_bbr()
             case "2":
                 bbr.disable_bbr()
+            case _:
+                print("Invalid input")
 
 
 if __name__ == "__main__":
