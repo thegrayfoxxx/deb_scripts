@@ -1,4 +1,4 @@
-import subprocess
+import subprocess as sub
 import time
 
 
@@ -17,21 +17,21 @@ findtime = 1h
 """
 
     def enable_fail2ban(self):
-        subprocess.run(["systemctl", "enable", "fail2ban"])
-        subprocess.run(["systemctl", "restart", "fail2ban"])
+        sub.run(["systemctl", "enable", "fail2ban"])
+        sub.run(["systemctl", "restart", "fail2ban"])
         time.sleep(1)
-        subprocess.run(["systemctl", "status", "fail2ban"])
-        subprocess.run(["fail2ban-client", "status", "sshd"])
+        sub.run(["systemctl", "status", "fail2ban"])
+        sub.run(["fail2ban-client", "status", "sshd"])
 
     def disable_fail2ban(self):
-        subprocess.run(["systemctl", "stop", "fail2ban"])
-        subprocess.run(["systemctl", "disable", "fail2ban"])
+        sub.run(["systemctl", "stop", "fail2ban"])
+        sub.run(["systemctl", "disable", "fail2ban"])
         time.sleep(1)
-        subprocess.run(["systemctl", "status", "fail2ban"])
-        subprocess.run(["fail2ban-client", "status", "sshd"])
+        sub.run(["systemctl", "status", "fail2ban"])
+        sub.run(["fail2ban-client", "status", "sshd"])
 
     def install_fail2ban(self):
-        subprocess.run(["apt", "install", "fail2ban", "-y"])
+        sub.run(["apt", "install", "fail2ban", "-y"])
 
         with open(self.path_to_jail_config, "w") as f:
             f.write(self.jail_str_config)
@@ -40,8 +40,8 @@ findtime = 1h
 
     def uninstall_fail2ban(self):
         self.disable_fail2ban()
-        subprocess.run(["apt", "remove", "fail2ban", "-y"])
-        subprocess.run(["rm", "-f", self.path_to_jail_config])
+        sub.run(["apt", "remove", "fail2ban", "-y"])
+        sub.run(["rm", "-f", self.path_to_jail_config])
 
     def interactive_run(self):
         print("Fail2Ban install")
