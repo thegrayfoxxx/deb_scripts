@@ -13,14 +13,36 @@ class Docker:
             ]
         )
 
+    def uninstall_docker(self):
+        run_commands(
+            [
+                [
+                    "apt",
+                    "purge",
+                    "docker-ce",
+                    "docker-ce-cli",
+                    "containerd.io",
+                    "docker-buildx-plugin",
+                    "docker-compose-plugin",
+                    "docker-ce-rootless-extras",
+                ],
+                ["rm", "-rf", "/var/lib/docker"],
+                ["rm", "-rf", "/var/lib/containerd"],
+                ["rm", "/etc/apt/sources.list.d/docker.list"],
+                ["rm", "/etc/apt/keyrings/docker.asc"],
+            ]
+        )
+
     def interactive_run(self):
         print("Docker install")
-        user_input = str(input("Exit - 0\nInstall - 1\n"))
+        user_input = str(input("Exit - 0\nInstall - 1\nUninstall - 2\n"))
         match user_input:
             case "0":
                 print("Exiting...")
             case "1":
                 self.install_docker()
+            case "2":
+                self.uninstall_docker()
             case _:
                 print("Invalid input")
                 self.interactive_run()
