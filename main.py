@@ -1,4 +1,4 @@
-from scripts.run import run_interactive_script
+from app.run import run_interactive_script
 
 
 def main():
@@ -9,4 +9,4 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("Exiting...")
+        print("Выход...")

@@ -1,7 +1,7 @@
-from utils.subprocess_utils import run_commands
+from app.utils.subprocess_utils import run_commands
 
 
-class Docker:
+class DockerService:
     def install_docker(self):
         run_commands(
             [
@@ -32,24 +32,3 @@ class Docker:
                 ["rm", "/etc/apt/keyrings/docker.asc"],
             ]
         )
-
-    def interactive_run(self):
-        print("Docker interactive")
-        user_input = str(input("Exit - 0\nInstall - 1\nUninstall - 2\n"))
-        match user_input:
-            case "0":
-                from scripts.run import run_interactive_script
-
-                run_interactive_script()
-            case "1":
-                self.install_docker()
-            case "2":
-                self.uninstall_docker()
-            case _:
-                print("Invalid input")
-                self.interactive_run()
-
-
-if __name__ == "__main__":
-    docker = Docker()
-    docker.interactive_run()

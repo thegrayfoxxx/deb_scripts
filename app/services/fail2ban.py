@@ -1,10 +1,10 @@
 import time
 from subprocess import run
 
-from utils.subprocess_utils import run_commands
+from app.utils.subprocess_utils import run_commands
 
 
-class Fail2Ban:
+class Fail2BanService:
     def __init__(self):
         self.path_to_jail_config = "/etc/fail2ban/jail.d/sshd.local"
         self.jail_str_config = """
@@ -68,23 +68,3 @@ findtime = 1h
                 ["rm", "-f", self.path_to_jail_config],
             ]
         )
-
-    def interactive_run(self):
-        print("Fail2Ban interactive")
-        user_input = str(input("Exit - 0\nInstall - 1\nUninstall - 2\n"))
-        match user_input:
-            case "0":
-                from scripts.run import run_interactive_script
-
-                run_interactive_script()
-            case "1":
-                self.install_fail2ban()
-            case "2":
-                self.uninstall_fail2ban()
-            case _:
-                print("Invalid input")
-
-
-if __name__ == "__main__":
-    installer = Fail2Ban()
-    installer.interactive_run()
