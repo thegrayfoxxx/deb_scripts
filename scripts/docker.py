@@ -34,7 +34,7 @@ class Docker:
         )
 
     def interactive_run(self):
-        print("Docker install")
+        print("Docker interactive")
         user_input = str(input("Exit - 0\nInstall - 1\nUninstall - 2\n"))
         match user_input:
             case "0":

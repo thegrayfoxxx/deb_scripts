@@ -42,7 +42,7 @@ net.ipv4.tcp_congestion_control=bbr
         )
 
     def interactive_run(self):
-        print("BBR install")
+        print("BBR interactive")
         user_input = str(input("Exit - 0\nEnable - 1\nDisable - 2\n"))
         bbr = BBR()
         match user_input:
