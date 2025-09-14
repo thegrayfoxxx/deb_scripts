@@ -1,6 +1,6 @@
-import subprocess as sub
+from subprocess import run
 
 
 def run_commands(commands: list[list[str]]) -> None:
     for command in commands:
-        sub.run(command)
+        run(command)
