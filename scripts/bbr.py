@@ -47,7 +47,9 @@ net.ipv4.tcp_congestion_control=bbr
         bbr = BBR()
         match user_input:
             case "0":
-                exit(0)
+                from scripts.run import run_interactive_script
+
+                run_interactive_script()
             case "1":
                 bbr.enable_bbr()
             case "2":

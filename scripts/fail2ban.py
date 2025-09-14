@@ -74,7 +74,9 @@ findtime = 1h
         user_input = str(input("Exit - 0\nInstall - 1\nUninstall - 2\n"))
         match user_input:
             case "0":
-                exit(0)
+                from scripts.run import run_interactive_script
+
+                run_interactive_script()
             case "1":
                 self.install_fail2ban()
             case "2":
