@@ -1,5 +1,5 @@
-import subprocess as sub
 import time
+from subprocess import run
 
 from utils.subprocess_utils import run_commands
 
@@ -33,7 +33,7 @@ findtime = 1h
 
         status_service = ""
         while status_service != "active":
-            status_service = sub.run(
+            status_service = run(
                 ["systemctl", "is-active", "fail2ban"], text=True, capture_output=True
             ).stdout.strip()
             time.sleep(0.5)
@@ -55,7 +55,7 @@ findtime = 1h
 
         status_service = ""
         while status_service != "inactive":
-            status_service = sub.run(
+            status_service = run(
                 ["systemctl", "is-active", "fail2ban"], text=True, capture_output=True
             ).stdout.strip()
             time.sleep(0.5)
@@ -70,7 +70,7 @@ findtime = 1h
         )
 
     def interactive_run(self):
-        print("Fail2Ban install")
+        print("Fail2Ban interactive")
         user_input = str(input("Exit - 0\nInstall - 1\nUninstall - 2\n"))
         match user_input:
             case "0":
