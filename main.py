@@ -1,4 +1,4 @@
-from app.run import run_interactive_script
+from app.interfaces.interactive.run import run_interactive_script
 
 
 def main():

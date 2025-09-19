@@ -1,19 +1,19 @@
-from app.services.fail2ban import Fail2BanService
+from app.services.docker import DockerService
 
 
 def interactive_run():
-    print("Fail2Ban\nВыберете действие:")
+    print("Docker\nВыберите действие:")
     user_input = str(input("Выход - 0\nУстановить - 1\nУдалить - 2\n"))
-    fail2ban = Fail2BanService()
+    docker = DockerService()
     match user_input:
         case "0":
-            from app.run import run_interactive_script
+            from app.interfaces.interactive.run import run_interactive_script
 
             run_interactive_script()
         case "1":
-            fail2ban.install_fail2ban()
+            docker.install_docker()
         case "2":
-            fail2ban.uninstall_fail2ban()
+            docker.uninstall_docker()
         case _:
             print("Неверный ввод")
             interactive_run()

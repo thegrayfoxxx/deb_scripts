@@ -7,7 +7,7 @@ def interactive_run():
     bbr = BBRService()
     match user_input:
         case "0":
-            from app.run import run_interactive_script
+            from app.interfaces.interactive.run import run_interactive_script
 
             run_interactive_script()
         case "1":

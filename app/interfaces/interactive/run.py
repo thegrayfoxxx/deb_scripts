@@ -1,4 +1,4 @@
-from app.interactive import bbr, docker, fail2ban, uv
+from app.interfaces.interactive import bbr, docker, fail2ban, uv
 
 
 def run_interactive_script():
