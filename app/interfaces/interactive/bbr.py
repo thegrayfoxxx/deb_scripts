@@ -11,9 +11,11 @@ def interactive_run():
 
             run_interactive_script()
         case "1":
-            bbr.enable_bbr()
+            result = bbr.enable_bbr()
+            print(result[1])
         case "2":
-            bbr.disable_bbr()
+            result = bbr.disable_bbr()
+            print(result[1])
         case _:
             print("Неверный ввод")
             interactive_run()
