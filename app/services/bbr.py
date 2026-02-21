@@ -12,13 +12,17 @@ net.ipv4.tcp_congestion_control=bbr
 """
 
     def enable_bbr(self):
+        run_commands([["modprobe", "tcp_bbr"]])
         with open(self.path_to_sysctl_config, "a") as f:
             f.write(self.bbr_config)
 
         run_commands([["sysctl", "-p"]])
         time.sleep(1)
         run_commands(
-            [["sysctl", "net.ipv4.tcp_congestion_control"], ["sysctl", "net.core.default_qdisc"]]
+            [
+                ["sysctl", "net.ipv4.tcp_congestion_control"],
+                ["sysctl", "net.core.default_qdisc"],
+            ]
         )
 
     def disable_bbr(self):
