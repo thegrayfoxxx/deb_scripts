@@ -1,7 +1,6 @@
 import os
 import subprocess
 import time
-from typing import List, Tuple
 
 from app.utils.subprocess_utils import run_commands
 
@@ -29,7 +28,7 @@ class BBRService:
         except subprocess.CalledProcessError:
             return False
 
-    def _run_sysctl(self, args: List[str]) -> bool:
+    def _run_sysctl(self, args: list[str]) -> bool:
         """Обертка для запуска sysctl с обработкой ошибок"""
         try:
             cmd = ["sysctl"] + args
@@ -39,7 +38,7 @@ class BBRService:
             print(f"Ошибка sysctl {' '.join(cmd)}: {e}")  # type:ignore
             return False
 
-    def enable_bbr(self) -> Tuple[bool, str]:
+    def enable_bbr(self) -> tuple[bool, str]:
         """Включает BBR. Возвращает (успех, сообщение)"""
         try:
             self._check_root()
@@ -71,7 +70,7 @@ class BBRService:
         except Exception as e:
             return False, f"Ошибка: {str(e)}"
 
-    def disable_bbr(self) -> Tuple[bool, str]:
+    def disable_bbr(self) -> tuple[bool, str]:
         """Отключает BBR (возвращает cubic). Возвращает (успех, сообщение)"""
         try:
             self._check_root()
