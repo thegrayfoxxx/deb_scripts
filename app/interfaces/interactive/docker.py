@@ -3,7 +3,7 @@ from app.services.docker import DockerService
 
 def interactive_run():
     print("Docker\nВыберите действие:")
-    user_input = str(input("Выход - 0\nУстановить - 1\nУдалить - 2\n"))
+    user_input = str(input("Установить - 1\nУдалить - 2\nВыход - 0\n"))
     docker = DockerService()
     match user_input:
         case "0":
@@ -12,8 +12,10 @@ def interactive_run():
             run_interactive_script()
         case "1":
             docker.install_docker()
+            interactive_run()
         case "2":
             docker.uninstall_docker()
+            interactive_run()
         case _:
             print("Неверный ввод")
             interactive_run()
