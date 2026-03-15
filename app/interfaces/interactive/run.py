@@ -1,9 +1,11 @@
-from app.interfaces.interactive import bbr, docker, fail2ban, uv
+from app.interfaces.interactive import bbr, docker, fail2ban, traffic_guard, uv
 
 
 def run_interactive_script():
     print("Добро пожаловать в deb_scripts!\nВыберите скрипт:")
-    user_input = str(input("Выход - 0\nBBR - 1\nDocker - 2\nFail2Ban - 3\nUV - 4\n"))
+    user_input = str(
+        input("BBR - 1\nDocker - 2\nFail2Ban - 3\nTrafficGuard - 4\nUV - 5\nВыход - 0\n")
+    )
     match user_input:
         case "0":
             exit()
@@ -14,6 +16,8 @@ def run_interactive_script():
         case "3":
             fail2ban.interactive_run()
         case "4":
+            traffic_guard.interactive_run()
+        case "5":
             uv.interactive_run()
         case _:
             print("Неверный ввод")
