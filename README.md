@@ -24,8 +24,9 @@
 | **BBR** | Включение/выключение алгоритма перегрузки BBR для оптимизации сети |
 | **Docker** | Установка и полное удаление Docker Engine |
 | **Fail2Ban** | Защита SSH через настройку Fail2Ban с jail для sshd |
-| **UV** | Установка и удаление менеджера пакетов UV (Astral) |
 | **TrafficGuard** | Установка и удаление TrafficGuard (защита от сканеров портов) |
+| **UV** | Установка и удаление менеджера пакетов UV (Astral) |
+
 
 ---
 
@@ -89,8 +90,8 @@ sudo uv run main.py
 BBR - 1
 Docker - 2
 Fail2Ban - 3
-UV - 4
-TrafficGuard - 5
+TrafficGuard - 4
+UV - 5
 Выход - 0
 ```
 
