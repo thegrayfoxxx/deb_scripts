@@ -1,0 +1,17 @@
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: deb_scripts_test
+    privileged: true # требуется для изменения sysctl и работы с systemd
+    volumes:
+      - ./app:/app/app
+      - ./tests:/app/tests
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./main.py:/app/main.py
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    # command можно переопределить при вызове, например для интерактива:
+    # docker-compose run --rm test /bin/bash
