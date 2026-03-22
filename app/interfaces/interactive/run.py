@@ -2,12 +2,29 @@ from app.interfaces.interactive import bbr, docker, fail2ban, traffic_guard, uv
 
 
 def run_interactive_script():
-    print("Добро пожаловать в deb_scripts!\nВыберите скрипт:")
+    print("🤖 Добро пожаловать в deb_scripts! 🤖")
+
+    # Отображаем информацию о программе
+    print("\n📋 Этот инструмент помогает автоматизировать задачи DevOps в Linux:")
+    print("• Установка и настройка сервисов")
+    print("• Оптимизация производительности")
+    print("• Защита сервера")
+
+    print("\nВыберите утилиту для работы:")
     user_input = str(
-        input("BBR - 1\nDocker - 2\nFail2Ban - 3\nTrafficGuard - 4\nUV - 5\nВыход - 0\n")
+        input(
+            "1 - 🌐 BBR (TCP Congestion Control) - ускорение сети\n"
+            "2 - 🐳 Docker - установка контейнеризации\n"
+            "3 - 🛡️ Fail2Ban - защита от атак\n"
+            "4 - ⚔️ TrafficGuard - комплексная защита\n"
+            "5 - 🐍 UV - менеджер пакетов Python\n"
+            "0 - ❌ Выход\n"
+            "Введите номер: "
+        )
     )
     match user_input:
         case "0":
+            print("👋 До свидания!")
             exit()
         case "1":
             bbr.interactive_run()
@@ -20,5 +37,5 @@ def run_interactive_script():
         case "5":
             uv.interactive_run()
         case _:
-            print("Неверный ввод")
+            print("❌ Неверный ввод, попробуйте снова")
             run_interactive_script()
