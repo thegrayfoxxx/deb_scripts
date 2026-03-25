@@ -25,42 +25,34 @@
   - `test_bbr_service_system.py` - системные тесты для BBR
   - `test_docker_service_system.py` - системные тесты для Docker
   - `test_fail2ban_service_system.py` - системные тесты для Fail2Ban
-- `system/` - системные тесты для проверки работы в реальной среде
-  - `test_system_commands.py` - базовые системные команды
-  - `test_bbr_service_system.py` - системные тесты для BBR
-  - `test_docker_service_system.py` - системные тесты для Docker
-  - `test_fail2ban_service_system.py` - системные тесты для Fail2Ban
 
 # Запуск тестов
 
-Тесты предназначены для запуска в Docker-контейнере:
+Тесты предназначены для запуска в DevContainer:
 
-Тесты предназначены для запуска в Docker-контейнере:
+Тесты предназначены для запуска в DevContainer:
 
 ```bash
-# Сборка контейнер
-docker compose build
+# Запуск всех тестов (внутри DevContainer)
+pytest -v --cov=app --cov-report=term-missing --tb=short
 
-# Запуск всех тестов
-docker compose run --rm test
+# Запуск только интеграционных тестов (внутри DevContainer)
+pytest -m integration -v
 
-# Запуск только интеграционных тестов
-docker compose run --rm test -m integration
+# Запуск только юнит-тестов (внутри DevContainer)
+pytest -m unit -v
 
-# Запуск только юнит-тестов
-docker compose run --rm test -m unit
+# Запуск только системных тестов (внутри DevContainer)
+pytest -m system -v
 
-# Запуск только системных тестов
-docker compose run --rm test pytest -m system -v
+# Запуск медленных системных тестов (внутри DevContainer)
+pytest -m "system and slow" -v
 
-# Запуск медленных системных тестов
-docker compose run --rm test pytest -m "system and slow" -v
+# Для интерактивной отладки внутри DevContainer
+pytest -sv
 
-# Для интерактивной отладки внутри контейнера
-docker compose run --rm test /bin/bash
-
-# Для получения подробного отчета о покрытии
-docker compose run --rm test --cov-report=html
+# Для получения подробного отчета о покрытии (внутри DevContainer)
+pytest --cov-report=html
 ```
 
 ## Особенности тестирования
@@ -80,10 +72,10 @@ docker compose run --rm test --cov-report=html
 - Обработку ошибок и граничных условий
 - Идемпотентность операций
 - Работу в реальной системной среде
-- Взаимодействие с системными ресурсами в контейнеризованной среде
+- Взаимодействие с системными ресурсами в изолированной среде Dev Container
 - Проверку основных системных команд и их доступности
 - Функциональность интерактивных интерфейсов
-- Взаимодействие с системными ресурсами в контейнеризованной среде
+- Взаимодействие с системными ресурсами в изолированной среде Dev Container
 
 Текущее покрытие: ~73%
 
