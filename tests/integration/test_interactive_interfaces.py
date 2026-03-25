@@ -254,8 +254,14 @@ class TestInteractiveInterfacesIntegration:
                 "app.interfaces.interactive.docker.DockerService", return_value=mock_docker_service
             ),
             patch(
-                "builtins.input", side_effect=["0", "0"]
-            ),  # Выходим из Docker меню, затем из главного
+                "builtins.input",
+                side_effect=[
+                    "00",  # Выбираем команду 00 для информации о Docker
+                    "0",  # Нажимаем Enter для возврата в меню Docker
+                    "0",  # Выходим из меню Docker
+                    "0",  # Выходим из главного меню
+                ],  # Выбираем команду 00, нажимаем Enter для возврата в меню, затем выходим
+            ),  # Показываем информацию о Docker, затем выходим
             patch("builtins.print") as mock_print,
             patch("sys.exit"),  # Предотвращаем выход из системы
         ):
