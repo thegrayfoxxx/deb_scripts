@@ -14,7 +14,11 @@ class DockerService:
             logger.debug("🔍 Проверка: docker --version")
             result = run(["docker", "--version"], check=False)
             if result.returncode == 0:
-                version = result.stdout.strip()
+                try:
+                    version = result.stdout.strip()
+                except Exception as e:
+                    logger.debug(f"❌ Ошибка при обработке вывода docker --version: {e}")
+                    return None
                 logger.debug(f"✅ Docker найден: {version}")
                 return version
             logger.debug(f"❌ docker --version вернул код {result.returncode}")

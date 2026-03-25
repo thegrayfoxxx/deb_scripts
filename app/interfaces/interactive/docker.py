@@ -8,6 +8,7 @@ def display_docker_submenu():
         input(
             "1 - 📦 Установить Docker\n"
             "2 - 🗑️ Удалить Docker\n"
+            "00 - ℹ️ Информация о Docker\n"
             "0 - 🏠 Вернуться в главное меню\n"
             "Введите номер: "
         )
@@ -15,9 +16,8 @@ def display_docker_submenu():
     return user_input
 
 
-def interactive_run():
-    docker = DockerService()
-
+def display_docker_info():
+    """Отображает информацию о Docker сервисе"""
     print("\n🐳 Docker Container Platform")
     print("Docker — платформа для контейнеризации приложений и сервисов")
     print("Основные преимущества:")
@@ -27,6 +27,14 @@ def interactive_run():
     print("• Быстрый запуск и остановка сервисов")
     print("• Эффективное использование ресурсов")
     print("🔗 Официальный сайт: https://docker.com")
+    print("\nДля возврата в меню нажмите любую клавишу")
+    input()
+
+
+def interactive_run():
+    docker = DockerService()
+
+    print("\n🐳 Docker Container Platform")
 
     user_input = display_docker_submenu()
 
@@ -35,6 +43,9 @@ def interactive_run():
             from app.interfaces.interactive.run import run_interactive_script
 
             run_interactive_script()
+        case "00":
+            display_docker_info()
+            interactive_run()
         case "1":
             print("\nУстановка Docker...")
             docker.install_docker()

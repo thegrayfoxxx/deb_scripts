@@ -6,15 +6,14 @@ def display_uv_submenu():
     print("\nДоступные действия для UV:")
     user_input = str(
         input(
-            "1 - 📦 Установить UV\n2 - 🗑️ Удалить UV\n0 - 🏠 Вернуться в главное меню\nВведите номер: "
+            "1 - 📦 Установить UV\n2 - 🗑️ Удалить UV\n00 - ℹ️ Информация о UV\n0 - 🏠 Вернуться в главное меню\nВведите номер: "
         )
     )
     return user_input
 
 
-def interactive_run():
-    app = UVService()
-
+def display_uv_info():
+    """Отображает информацию о UV сервисе"""
     print("\n🐍 UV Python Package Manager")
     print("UV — современный и быстрый менеджер пакетов Python")
     print("Основные преимущества:")
@@ -25,6 +24,15 @@ def interactive_run():
     print("• Улучшенная безопасность при установке пакетов")
     print("• Полная совместимость с PyPI и системой пакетов Python")
     print("🔗 GitHub репозиторий: https://github.com/astral-sh/uv")
+    print("🔗 Официальный сайт: https://astral.sh")
+    print("\nДля возврата в меню нажмите любую клавишу")
+    input()
+
+
+def interactive_run():
+    app = UVService()
+
+    print("\n🐍 UV Python Package Manager")
 
     user_input = display_uv_submenu()
 
@@ -33,6 +41,9 @@ def interactive_run():
             from app.interfaces.interactive.run import run_interactive_script
 
             run_interactive_script()
+        case "00":
+            display_uv_info()
+            interactive_run()
         case "1":
             print("\nУстановка UV...")
             app.install_uv()

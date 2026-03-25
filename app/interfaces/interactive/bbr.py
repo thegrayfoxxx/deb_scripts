@@ -6,15 +6,14 @@ def display_bbr_submenu():
     print("\nДоступные действия для BBR:")
     user_input = str(
         input(
-            "1 - 🔌 Включить BBR\n2 - 🔓 Отключить BBR\n0 - 🏠 Вернуться в главное меню\nВведите номер: "
+            "1 - 🔌 Включить BBR\n2 - 🔓 Отключить BBR\n00 - ℹ️ Информация о BBR\n0 - 🏠 Вернуться в главное меню\nВведите номер: "
         )
     )
     return user_input
 
 
-def interactive_run():
-    bbr = BBRService()
-
+def display_bbr_info():
+    """Отображает информацию о BBR сервисе"""
     print("\n🌐 TCP BBR Congestion Control")
     print("BBR (Bottleneck Bandwidth and RTT) — это алгоритм управления перегрузками в TCP")
     print("Разработан Google для улучшения производительности сетевых соединений")
@@ -24,6 +23,14 @@ def interactive_run():
     print("• Лучшая стабильность при высокой нагрузке")
     print("• Оптимизация для VPS и выделенных серверов")
     print("🔗 GitHub репозиторий: https://github.com/google/bbr")
+    print("\nДля возврата в меню нажмите любую клавишу")
+    input()
+
+
+def interactive_run():
+    bbr = BBRService()
+
+    print("\n🌐 TCP BBR Congestion Control")
 
     user_input = display_bbr_submenu()
 
@@ -32,6 +39,9 @@ def interactive_run():
             from app.interfaces.interactive.run import run_interactive_script
 
             run_interactive_script()
+        case "00":
+            display_bbr_info()
+            interactive_run()
         case "1":
             print("\nВключение BBR...")
             bbr.enable_bbr()

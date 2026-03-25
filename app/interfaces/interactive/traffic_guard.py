@@ -8,6 +8,7 @@ def display_trafficguard_submenu():
         input(
             "1 - 🔒 Установить TrafficGuard\n"
             "2 - 🔓 Удалить TrafficGuard\n"
+            "00 - ℹ️ Информация о TrafficGuard\n"
             "0 - 🏠 Вернуться в главное меню\n"
             "Введите номер: "
         )
@@ -15,9 +16,8 @@ def display_trafficguard_submenu():
     return user_input
 
 
-def interactive_run():
-    traffic_guard = TrafficGuardService()
-
+def display_trafficguard_info():
+    """Отображает информацию о TrafficGuard сервисе"""
     print("\n⚔️ TrafficGuard Server Protection")
     print("TrafficGuard — комплексная система защиты сервера от сканирования и атак")
     print("Основные возможности:")
@@ -28,6 +28,14 @@ def interactive_run():
     print("• Автоматическое обновление списков заблокированных адресов")
     print("• Поддержка IPv4 и IPv6")
     print("🔗 GitHub репозиторий: https://github.com/DonMatteoVPN/TrafficGuard-auto")
+    print("\nДля возврата в меню нажмите любую клавишу")
+    input()
+
+
+def interactive_run():
+    traffic_guard = TrafficGuardService()
+
+    print("\n⚔️ TrafficGuard Server Protection")
 
     user_input = display_trafficguard_submenu()
 
@@ -36,6 +44,9 @@ def interactive_run():
             from app.interfaces.interactive.run import run_interactive_script
 
             run_interactive_script()
+        case "00":
+            display_trafficguard_info()
+            interactive_run()
         case "1":
             print("\nУстановка TrafficGuard...")
             traffic_guard.install_trafficguard()

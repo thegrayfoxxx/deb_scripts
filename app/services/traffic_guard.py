@@ -135,7 +135,11 @@ class TrafficGuardService:
         start_time = time.time()
 
         while (time.time() - start_time) < max_wait:
-            current_status = self._get_service_status()
+            try:
+                current_status = self._get_service_status()
+            except Exception:
+                logger.debug("Ошибка при проверке статуса службы, продолжаем ожидание...")
+                current_status = None
 
             # ✅ Если служба существует (даже inactive) — считаем, что установка прошла
             if current_status in ("active", "inactive"):
