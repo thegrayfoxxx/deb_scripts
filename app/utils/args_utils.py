@@ -4,11 +4,29 @@ import sys
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Инфо", formatter_class=argparse.RawTextHelpFormatter
+        description="Утилита для автоматизации DevOps задач в Linux",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
 
     parser.add_argument(
-        "--mode", choices=["dev", "prod"], default="prod", help="Режим работы приложения"
+        "--mode",
+        choices=["dev", "prod"],
+        default="prod",
+        help="Режим работы приложения: dev (для разработки) или prod (продакшен по умолчанию)",
+    )
+
+    # Non-interactive mode arguments
+    parser.add_argument(
+        "--install",
+        nargs="+",
+        type=str,
+        help="Режим неинтерактивной установки: 1=BBR, 2=Docker, 3=Fail2Ban, 4=TrafficGuard, 5=UV",
+    )
+    parser.add_argument(
+        "--uninstall",
+        nargs="+",
+        type=str,
+        help="Режим неинтерактивного удаления: 1=BBR, 2=Docker, 3=Fail2Ban, 4=TrafficGuard, 5=UV",
     )
 
     return parser.parse_args()
