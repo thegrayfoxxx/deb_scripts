@@ -20,7 +20,7 @@ class TestDockerSystemService:
         self.service = DockerService()
 
     def test_docker_binary_not_available_by_default(self):
-        """Проверяем, что Docker не установлен по умолчанию в тестовом контейнере"""
+        """Проверяем, что Docker не установлен по умолчанию в тестовом окружении"""
         result = subprocess.run(["which", "docker"], capture_output=True, text=True)
         # В стандартном тестовом контейнере Docker обычно не установлен
         assert result.returncode != 0  # 'which docker' должна вернуть ненулевой код
