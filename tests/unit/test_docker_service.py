@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from app.services.docker import DockerService
 
@@ -140,3 +140,91 @@ class TestDockerService:
             )
             mock_run.assert_any_call(["rm", "-rf", "/var/lib/docker"], check=False)
             mock_run.assert_any_call(["rm", "-rf", "/var/lib/containerd"], check=False)
+
+    def test_get_docker_version_general_exception(self):
+        """Тест получения версии docker с общей ошибкой в обработке stdout"""
+        with patch("app.services.docker.run") as mock_run:
+            # Mock result with normal return code but problematic stdout that causes exception when processed
+            mock_result = Mock()
+            mock_result.returncode = 0
+            # Make .strip() on stdout raise an exception
+            mock_result.stdout = Mock()
+            mock_result.stdout.strip.side_effect = Exception("Processing error")
+            mock_run.return_value = mock_result
+
+            result = self.service._get_docker_version()
+
+            # Should return None when exception occurs during processing
+            assert result is None
+
+    @patch("app.services.docker.update_os")
+    @patch("app.services.docker.run")
+    def test_install_docker_file_not_found_error(self, mock_run, mock_update_os):
+        """Тест установки docker с ошибкой FileNotFoundError"""
+        mock_run.side_effect = FileNotFoundError("Command not found")
+
+        with patch("app.services.docker.logger") as mock_logger:
+            self.service.install_docker()
+
+            # Should log the error
+            mock_logger.error.assert_called()
+
+    @patch("app.services.docker.update_os")
+    @patch("app.services.docker.run")
+    def test_install_docker_permission_error(self, mock_run, mock_update_os):
+        """Тест установки docker с ошибкой PermissionError"""
+        mock_run.side_effect = PermissionError("Permission denied")
+
+        with patch("app.services.docker.logger") as mock_logger:
+            self.service.install_docker()
+
+            # Should log the error
+            mock_logger.error.assert_called()
+
+    @patch("app.services.docker.update_os")
+    @patch("app.services.docker.run")
+    def test_install_docker_general_exception(self, mock_run, mock_update_os):
+        """Тест установки docker с общей ошибкой"""
+        mock_run.side_effect = Exception("General error")
+
+        with patch("app.services.docker.logger") as mock_logger:
+            self.service.install_docker()
+
+            # Should log the exception
+            mock_logger.exception.assert_called()
+
+    @patch("app.services.docker.run")
+    def test_uninstall_docker_permission_error_after_check(self, mock_run):
+        """Тест удаления docker с ошибкой PermissionError после проверки существования"""
+        # First call: Docker exists, subsequent call raises PermissionError during apt purge
+        side_effects = [
+            Mock(
+                returncode=0, stdout="Docker version 24.0.5, build ced0996"
+            ),  # Docker exists initially
+            PermissionError("Permission denied"),  # Error during apt purge
+        ]
+        mock_run.side_effect = side_effects
+
+        with patch("app.services.docker.logger") as mock_logger:
+            self.service.uninstall_docker()
+
+            # Should log the error
+            mock_logger.error.assert_called()
+
+    @patch("app.services.docker.run")
+    def test_uninstall_docker_general_exception_after_check(self, mock_run):
+        """Тест удаления docker с общей ошибкой после проверки существования"""
+        # First call: Docker exists, subsequent call raises general exception
+        side_effects = [
+            Mock(
+                returncode=0, stdout="Docker version 24.0.5, build ced0996"
+            ),  # Docker exists initially
+            Exception("General error"),  # Error during processing
+        ]
+        mock_run.side_effect = side_effects
+
+        with patch("app.services.docker.logger") as mock_logger:
+            self.service.uninstall_docker()
+
+            # Should log the exception
+            mock_logger.exception.assert_called()

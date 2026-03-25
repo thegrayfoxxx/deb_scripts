@@ -140,8 +140,6 @@ class TestUVService:
 
     # Пропускаем этот тест, так как сложно мокировать все вызовы в методе удаления
 
-    # Пропускаем этот тест, так как сложно мокировать все вызовы в методе _add_to_path_if_needed
-
     def test_get_uv_paths_file_not_found_error(self):
         """Тест получения путей uv с ошибкой FileNotFoundError"""
         with patch("app.services.uv.run") as mock_run:
@@ -152,26 +150,129 @@ class TestUVService:
             # Should return None when FileNotFoundError occurs
             assert result is None
 
-    @patch("app.services.uv.Path.exists")
-    def test_get_uv_paths_permission_error(self, mock_path_exists):
-        """Тест получения путей uv с ошибкой PermissionError"""
-        # Simulate permission error when trying to access paths
-        mock_path_exists.side_effect = PermissionError("Permission denied")
-
-        # We need to bypass the _get_uv_paths internal functionality and test exception handling
+    def test_get_uv_paths_general_exception(self):
+        """Тест получения путей uv с общей ошибкой"""
         with patch("app.services.uv.run") as mock_run:
-            # Have the run command succeed but accessing paths fails with permission error later
-            mock_result = Mock()
-            mock_result.returncode = 0
-            mock_result.stdout = "/some/path"
-            mock_run.return_value = mock_result
+            mock_run.side_effect = Exception("General error")
 
-            # Directly test the method
-            try:
-                result = self.service._get_uv_paths()
-            except PermissionError:
-                # If a PermissionError occurs during the actual file system operations, that's acceptable
-                result = None
+            result = self.service._get_uv_paths()
 
-            # The method should handle errors gracefully and return None
-            assert result is not None  # This test is focused on run command level errors
+            # Should return None when general exception occurs
+            assert result is None
+
+    def test_install_uv_file_not_found_error(self):
+        """Тест установки uv с ошибкой FileNotFoundError"""
+        with patch.object(UVService, "_is_uv_installed") as mock_is_installed:
+            mock_is_installed.return_value = False
+
+            with patch("app.services.uv.update_os"):
+                with patch("app.services.uv.run") as mock_run:
+                    mock_run.side_effect = FileNotFoundError("Command not found")
+
+                    # Capture logger to verify error message
+                    with patch("app.services.uv.logger") as mock_logger:
+                        result = self.service.install_uv()
+
+                        # Should log error but return None
+                        mock_logger.error.assert_called()
+
+    def test_install_uv_permission_error(self):
+        """Тест установки uv с ошибкой PermissionError"""
+        with patch.object(UVService, "_is_uv_installed") as mock_is_installed:
+            mock_is_installed.return_value = False
+
+            with patch("app.services.uv.update_os"):
+                with patch("app.services.uv.run") as mock_run:
+                    mock_run.side_effect = PermissionError("Permission denied")
+
+                    # Capture logger to verify error message
+                    with patch("app.services.uv.logger") as mock_logger:
+                        result = self.service.install_uv()
+
+                        # Should log error but return None
+                        mock_logger.error.assert_called()
+
+    def test_install_uv_general_exception(self):
+        """Тест установки uv с общей ошибкой"""
+        with patch.object(UVService, "_is_uv_installed") as mock_is_installed:
+            mock_is_installed.return_value = False
+
+            with patch("app.services.uv.update_os"):
+                with patch("app.services.uv.run") as mock_run:
+                    mock_run.side_effect = Exception("General error")
+
+                    # Capture logger to verify error message
+                    with patch("app.services.uv.logger") as mock_logger:
+                        result = self.service.install_uv()
+
+                        # Should log exception
+                        mock_logger.exception.assert_called()
+
+    def test_uninstall_uv_file_not_found_error(self):
+        """Тест удаления uv с ошибкой FileNotFoundError при проверке установки"""
+        with patch.object(UVService, "_is_uv_installed") as mock_is_installed:
+            mock_is_installed.side_effect = FileNotFoundError("Command not found")
+
+            # Capture logger to verify message
+            with patch("app.services.uv.logger") as mock_logger:
+                result = self.service.uninstall_uv()
+
+                # Should log info that uv is already removed
+                mock_logger.info.assert_called()
+
+    def test_uninstall_uv_permission_error(self):
+        """Тест удаления uv с ошибкой PermissionError"""
+        with patch.object(UVService, "_is_uv_installed") as mock_is_installed:
+            mock_is_installed.return_value = True  # uv is installed
+
+            with patch("app.services.uv.run") as mock_run:
+                mock_run.side_effect = [
+                    Mock(returncode=0, stdout="cache cleaned"),  # cache clean success
+                    Mock(returncode=0, stdout="/path/to/python"),  # python dir
+                    Mock(returncode=0, stdout="/path/to/tool"),  # tool dir
+                    Mock(returncode=0),  # rm success
+                    Mock(returncode=0),  # rm success
+                    Mock(returncode=1),  # final check failure
+                ]
+
+                with patch.object(UVService, "_get_uv_paths") as mock_get_paths:
+                    mock_get_paths.return_value = {
+                        "python": "/path/to/python",
+                        "tool": "/path/to/tool",
+                    }
+
+                    with patch.object(UVService, "ENV_FILE") as mock_env_file:
+                        mock_env_file.exists.return_value = False
+
+                        with patch("app.services.uv.logger") as mock_logger:
+                            # Simulate permission error during actual removal process
+                            with patch("os.remove") as mock_remove:
+                                mock_remove.side_effect = PermissionError("Permission denied")
+
+                                # Call uninstall method
+                                result = self.service.uninstall_uv()
+
+    def test_uninstall_uv_general_exception(self):
+        """Тест удаления uv с общей ошибкой"""
+        with patch.object(UVService, "_is_uv_installed") as mock_is_installed:
+            mock_is_installed.return_value = True  # uv is installed
+
+            with patch("app.services.uv.run") as mock_run:
+                mock_run.side_effect = Exception("General error")
+
+                # Capture logger to verify exception logging
+                with patch("app.services.uv.logger") as mock_logger:
+                    result = self.service.uninstall_uv()
+
+                    # Should log exception
+                    mock_logger.exception.assert_called()
+
+    def test_is_uv_installed_general_exception(self):
+        """Тест проверки установки uv с общей ошибкой"""
+        with patch("app.services.uv.run") as mock_run:
+            mock_run.side_effect = Exception("General error")
+
+            result = self.service._is_uv_installed()
+
+            # Should return False when general exception occurs
+            assert result is False
