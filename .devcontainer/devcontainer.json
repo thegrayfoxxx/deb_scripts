@@ -1,0 +1,16 @@
+{
+    "name": "deb_scripts Development Environment",
+    "build": {
+        "context": "..",
+        "dockerfile": "../Dockerfile"
+    },
+    "runArgs": ["--privileged"],
+    "features": {
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.12"
+        },
+        "ghcr.io/devcontainers/features/git:1": {}
+    },
+    "postCreateCommand": "",
+    "remoteUser": "root"
+}
