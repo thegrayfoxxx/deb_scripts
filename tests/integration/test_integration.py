@@ -8,6 +8,7 @@ from app.services.bbr import BBRService
 from app.services.docker import DockerService
 from app.services.fail2ban import Fail2BanService
 from app.services.traffic_guard import TrafficGuardService
+from app.services.ufw import UfwService
 from app.services.uv import UVService
 
 
@@ -501,3 +502,79 @@ class TestIntegration:
             # Вместо проверки внутренней реализации проверим общее поведение
             # Все сервисы должны быть корректно инициализированы
             assert service is not None
+
+    @pytest.mark.integration
+    def test_ufw_service_with_subprocess_integration(self):
+        """Тест интеграции UfwService с subprocess_utils"""
+
+        service = UfwService()
+
+        with patch("app.services.ufw.run") as mock_run:
+            mock_result = MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = "/usr/sbin/ufw"
+            mock_run.return_value = mock_result
+
+            result = service.is_installed()
+
+            # Проверяем, что вызов прошел через subprocess_utils
+            mock_run.assert_called_once_with(["which", "ufw"], check=False)
+            assert result is True
+
+    @pytest.mark.integration
+    def test_ufw_service_with_update_utils_integration(self):
+        """Тест интеграции UfwService с update_utils"""
+
+        service = UfwService()
+
+        with (
+            patch("os.geteuid", return_value=0),  # root privileges
+            patch("app.services.ufw.update_os") as mock_update_os,
+            patch("app.services.ufw.run") as mock_run,
+        ):
+            # First call for is_installed (should return False to trigger install)
+            # Second call for apt install
+            # Third and onwards for other commands
+            def side_effect(cmd, check=True, **kwargs):
+                mock_result = MagicMock()
+                if cmd == ["which", "ufw"]:
+                    mock_result.returncode = 1  # Not installed initially
+                elif isinstance(cmd, list) and cmd[0] == "apt":
+                    mock_result.returncode = 0  # Install succeeds
+                elif isinstance(cmd, list) and len(cmd) >= 2 and cmd[0] == "ufw":
+                    mock_result.returncode = 0  # UFW commands succeed
+                else:
+                    mock_result.returncode = 0
+                mock_result.stdout = ""
+                return mock_result
+
+            mock_run.side_effect = side_effect
+
+            # Patch is_installed to return True after installation
+            with patch.object(service, "is_installed", side_effect=[False, True]):
+                result = service.install()
+
+            # Check that update_os was called during installation
+            mock_update_os.assert_called()
+            assert result is True
+
+    @pytest.mark.integration
+    def test_ufw_and_traffic_guard_integration(self):
+        """Тест интеграции UfwService с TrafficGuardService (новый UFW сервис должен использоваться в TrafficGuard)"""
+        from app.services.traffic_guard import TrafficGuardService
+
+        # Проверим, что TrafficGuardService использует UfwService
+        tg_service = TrafficGuardService()
+        ufw_service = UfwService()
+
+        # Проверим, что в TrafficGuardService импортирован UfwService
+        import inspect
+
+        import app.services.traffic_guard
+
+        source = inspect.getsource(
+            app.services.traffic_guard.TrafficGuardService._setup_firewall_safety
+        )
+
+        # Проверяем, что в методе используется UfwService
+        assert "UfwService()" in source or "ufw_service" in source

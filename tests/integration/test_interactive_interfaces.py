@@ -162,7 +162,7 @@ class TestInteractiveInterfacesIntegration:
         """Тест выбора Docker в главном меню"""
         with (
             patch(
-                "builtins.input", side_effect=["2", "0", "0"]
+                "builtins.input", side_effect=["3", "0", "0"]
             ),  # Выбираем Docker, затем выход из Docker, затем выход из главного
             patch("builtins.print"),
             patch("app.interfaces.interactive.docker.interactive_run") as mock_docker_run,
@@ -180,7 +180,7 @@ class TestInteractiveInterfacesIntegration:
         """Тест выбора BBR в главном меню"""
         with (
             patch(
-                "builtins.input", side_effect=["1", "0", "0"]
+                "builtins.input", side_effect=["2", "0", "0"]
             ),  # Выбираем BBR, затем выход из BBR, затем выход из главного
             patch("builtins.print"),
             patch("app.interfaces.interactive.bbr.interactive_run") as mock_bbr_run,
