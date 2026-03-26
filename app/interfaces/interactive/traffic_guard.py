@@ -48,15 +48,10 @@ def interactive_run():
             display_trafficguard_info()
             interactive_run()
         case "1":
-            print("\nУстановка TrafficGuard...")
             traffic_guard.install_trafficguard()
-            print("\nTrafficGuard успешно установлен!")
             interactive_run()
         case "2":
-            print("\nУдаление TrafficGuard...")
-            traffic_guard.uninstall_trafficguard()
-            print("\nTrafficGuard успешно удален!")
+            traffic_guard.uninstall_trafficguard(confirm=True)
             interactive_run()
         case _:
-            print("Неверный ввод, попробуйте снова")
             interactive_run()

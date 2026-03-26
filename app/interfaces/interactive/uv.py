@@ -45,15 +45,10 @@ def interactive_run():
             display_uv_info()
             interactive_run()
         case "1":
-            print("\nУстановка UV...")
             app.install_uv()
-            print("\nUV успешно установлен!")
             interactive_run()
         case "2":
-            print("\nУдаление UV...")
-            app.uninstall_uv()
-            print("\nUV успешно удален!")
+            app.uninstall_uv(confirm=True)
             interactive_run()
         case _:
-            print("Неверный ввод, попробуйте снова")
             interactive_run()

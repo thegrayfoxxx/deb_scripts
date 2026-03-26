@@ -48,15 +48,10 @@ def interactive_run():
             display_fail2ban_info()
             interactive_run()
         case "1":
-            print("\nУстановка Fail2Ban...")
             fail2ban.install_fail2ban()
-            print("\nFail2Ban успешно установлен!")
             interactive_run()
         case "2":
-            print("\nУдаление Fail2Ban...")
-            fail2ban.uninstall_fail2ban()
-            print("\nFail2Ban успешно удален!")
+            fail2ban.uninstall_fail2ban(confirm=True)
             interactive_run()
         case _:
-            print("Неверный ввод, попробуйте снова")
             interactive_run()

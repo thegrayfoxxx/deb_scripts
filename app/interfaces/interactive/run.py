@@ -1,4 +1,4 @@
-from app.interfaces.interactive import bbr, docker, fail2ban, traffic_guard, uv
+from app.interfaces.interactive import bbr, docker, fail2ban, traffic_guard, ufw, uv
 
 
 def display_program_info():
@@ -18,11 +18,12 @@ def run_interactive_script():
     print("\nВыберите утилиту для работы:")
     user_input = str(
         input(
-            "1 - 🌐 BBR (TCP Congestion Control) - ускорение сети\n"
-            "2 - 🐳 Docker - установка контейнеризации\n"
-            "3 - 🛡️ Fail2Ban - защита от атак\n"
-            "4 - ⚔️ TrafficGuard - комплексная защита\n"
-            "5 - 🐍 UV - менеджер пакетов Python\n"
+            "1 - 🔥 UFW - uncomplicated firewall (межсетевой экран)\n"
+            "2 - 🌐 BBR (TCP Congestion Control) - ускорение сети\n"
+            "3 - 🐳 Docker - установка контейнеризации\n"
+            "4 - 🛡️ Fail2Ban - защита от атак\n"
+            "5 - ⚔️ TrafficGuard - комплексная защита\n"
+            "6 - 🐍 UV - менеджер пакетов Python\n"
             "00 - ℹ️ Информация о программе\n"
             "0 - ❌ Выход\n"
             "Введите номер: "
@@ -36,14 +37,16 @@ def run_interactive_script():
             display_program_info()
             run_interactive_script()
         case "1":
-            bbr.interactive_run()
+            ufw.interactive_run()
         case "2":
-            docker.interactive_run()
+            bbr.interactive_run()
         case "3":
-            fail2ban.interactive_run()
+            docker.interactive_run()
         case "4":
-            traffic_guard.interactive_run()
+            fail2ban.interactive_run()
         case "5":
+            traffic_guard.interactive_run()
+        case "6":
             uv.interactive_run()
         case _:
             print("❌ Неверный ввод, попробуйте снова")

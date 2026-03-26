@@ -47,15 +47,10 @@ def interactive_run():
             display_docker_info()
             interactive_run()
         case "1":
-            print("\nУстановка Docker...")
             docker.install_docker()
-            print("\nDocker успешно установлен!")
             interactive_run()
         case "2":
-            print("\nУдаление Docker...")
-            docker.uninstall_docker()
-            print("\nDocker успешно удален!")
+            docker.uninstall_docker(confirm=True)
             interactive_run()
         case _:
-            print("Неверный ввод, попробуйте снова")
             interactive_run()

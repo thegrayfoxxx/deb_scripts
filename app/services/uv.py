@@ -87,10 +87,10 @@ class UVService:
     def install_uv(self):
         """Устанавливает uv (идемпотентно: безопасно запускать много раз)"""
         try:
-            logger.info("🐍 Начало установки uv...")
+            logger.info("🐍 Начало установки uv (современного менеджера пакетов Python)...")
 
             # 🔍 Проверка: а может, uv уже установлен?
-            logger.info("🔍 Проверка наличия uv...")
+            logger.info("🔍 Проверка наличия uv в системе...")
             if self._is_uv_installed():
                 version_result = run(self.UV_VERSION_CMD, check=False)
                 version = version_result.stdout.strip()
@@ -99,19 +99,19 @@ class UVService:
                 return
 
             # 🔄 Шаг 1: Обновление системы
-            logger.info("🔄 Обновление системы...")
+            logger.info("🔄 Обновление системы перед установкой uv...")
             update_os()
-            logger.debug("✅ Система обновлена")
+            logger.debug("✅ Система успешно обновлена перед установкой uv")
 
             # 📦 Шаг 2: Установка curl (если нет)
-            logger.info("📦 Проверка curl...")
+            logger.info("📦 Проверка наличия утилиты curl для загрузки установщика...")
             curl_result = run(["apt", "install", "-y", "curl"], check=False)
             logger.debug(f"📋 apt install curl вывод:\n{curl_result.stdout.strip()}")
             if curl_result.returncode != 0:
                 logger.warning("⚠️ curl уже установлен или возникла незначительная ошибка")
 
             # ⬇️ Шаг 3: Скачивание скрипта установки
-            logger.info("⬇️ Скачивание официального скрипта установки uv...")
+            logger.info("⬇️ Скачивание официального скрипта установки uv с astral.sh...")
             # ✅ Исправлено: убраны пробелы в URL
             download_result = run(
                 ["curl", "-LsSf", self.UV_INSTALL_URL, "-o", "uv_install.sh"], check=False
@@ -122,7 +122,7 @@ class UVService:
             logger.debug("✅ Скрипт загружен")
 
             # 🔧 Шаг 4: Запуск установки
-            logger.info("🔧 Запуск установки uv...")
+            logger.info("🔧 Запуск установки uv в неинтерактивном режиме...")
             # Передаём переменную окружения для неинтерактивной установки
             install_result = run(
                 ["sh", "./uv_install.sh"],
@@ -137,12 +137,12 @@ class UVService:
             logger.debug("✅ Скрипт установки завершён")
 
             # 🧹 Шаг 5: Очистка временных файлов
-            logger.info("🧹 Очистка временных файлов...")
+            logger.info("🧹 Очистка временных файлов после установки uv...")
             run(["rm", "-f", "uv_install.sh"], check=False)
             logger.debug("✅ uv_install.sh удалён")
 
             # ✅ Шаг 6: Финальная проверка установки
-            logger.info("🔍 Финальная проверка установки...")
+            logger.info("🔍 Финальная проверка успешной установки uv...")
             if self._is_uv_installed():
                 version_result = run(self.UV_VERSION_CMD, check=False)
                 version = version_result.stdout.strip()
@@ -160,13 +160,21 @@ class UVService:
         except Exception:
             logger.exception("💥 Критическая ошибка при установке uv")
 
-    def uninstall_uv(self):
+    def uninstall_uv(self, confirm: bool = False):
         """Полностью удаляет uv и его данные (идемпотентно)"""
         try:
-            logger.warning("⚠️ Начало удаления uv...")
+            if confirm:
+                confirmation = input(
+                    "⚠️ Вы уверены, что хотите удалить uv и все его данные? (y/N): "
+                )
+                if confirmation.lower() not in ["y", "yes"]:
+                    logger.info("❌ Удаление uv отменено пользователем")
+                    return
+
+            logger.warning("⚠️ Начало удаления uv (современного менеджера пакетов Python)...")
 
             # 🔍 Проверка: а установлен ли uv вообще?
-            logger.info("🔍 Проверка наличия uv...")
+            logger.info("🔍 Проверка наличия uv в системе...")
             if not self._is_uv_installed():
                 logger.info("✅ uv не установлен, пропускаем удаление 🧹")
                 # Всё равно почистим файлы на всякий случай
@@ -174,7 +182,7 @@ class UVService:
                 return
 
             # 🗑️ Шаг 1: Очистка кэша
-            logger.info("🧹 Очистка кэша uv...")
+            logger.info("🧹 Очистка кэша uv (временные файлы и зависимости)...")
             cache_result = run(self.UV_CACHE_CLEAN_CMD, check=False)
             logger.debug(f"📋 uv cache clean вывод:\n{cache_result.stdout.strip()}")
             if cache_result.returncode == 0:
@@ -183,7 +191,7 @@ class UVService:
                 logger.warning("⚠️ Не удалось очистить кэш (возможно, уже пуст)")
 
             # 📁 Шаг 2: Получение путей к данным
-            logger.info("🔍 Получение путей к данным uv...")
+            logger.info("🔍 Получение путей к директориям данных uv...")
             paths = self._get_uv_paths()
 
             if paths:
@@ -204,7 +212,7 @@ class UVService:
                 logger.warning("⚠️ Не удалось получить пути uv, пропускаем удаление директорий")
 
             # 🧹 Шаг 3: Удаление исполняемых файлов
-            logger.info("🧹 Удаление исполняемых файлов uv...")
+            logger.info("🧹 Удаление исполняемых файлов uv и uvx...")
             bin_result = run(
                 ["rm", "-f", str(self.UV_EXECUTABLE), str(self.UVX_EXECUTABLE)], check=False
             )
@@ -217,7 +225,7 @@ class UVService:
                 logger.debug(f"✅ Удалён {self.ENV_FILE}")
 
             # 🔍 Шаг 5: Финальная проверка
-            logger.info("🔍 Финальная проверка удаления...")
+            logger.info("🔍 Финальная проверка полного удаления uv из системы...")
             if not self._is_uv_installed():
                 logger.info("✅ uv полностью удалён 🧹")
             else:

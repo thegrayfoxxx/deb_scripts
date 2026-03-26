@@ -83,10 +83,10 @@ class BBRService:
     def enable_bbr(self) -> None:
         """Включает BBR (идемпотентно: безопасно запускать много раз)"""
         try:
-            logger.info("🚀 Начало включения BBR...")
+            logger.info("🚀 Начало включения TCP BBR Congestion Control...")
 
             # 🔍 Проверка: а может, BBR уже включен?
-            logger.info("🔍 Проверка текущего состояния...")
+            logger.info("🔍 Проверка текущего состояния алгоритма управления перегрузками...")
             current_algo = self._get_current_congestion_control()
             if current_algo == "bbr":
                 logger.info("✅ BBR уже включен 🎉")
@@ -97,13 +97,13 @@ class BBRService:
                 logger.warning("⚠️ Не удалось определить текущий алгоритм, продолжаем...")
 
             # 🔄 Обновление системы
-            logger.info("🔄 Обновление системы...")
+            logger.info("🔄 Обновление системы перед включением BBR...")
             update_os()
             logger.debug("✅ Система обновлена")
 
             # 📦 Шаг 1: Загрузка модуля ядра
             if not self._is_bbr_module_loaded():
-                logger.info("📦 Модуль tcp_bbr не загружен, загружаем...")
+                logger.info("📦 Модуль ядра tcp_bbr не загружен, выполняем загрузку...")
                 modprobe_result = run(["modprobe", "tcp_bbr"], check=False)
                 logger.debug(f"🔧 modprobe вывод: {modprobe_result.stdout.strip()}")
 
@@ -135,7 +135,7 @@ class BBRService:
             logger.debug(f"✅ Конфиг sysctl: {self.SYSCTL_CONFIG_PATH}")
 
             # 🔄 Шаг 4: Применение настроек
-            logger.info("🔄 Применение настроек sysctl...")
+            logger.info("🔄 Применение настроек sysctl для BBR...")
             start_time = time.time()
             sysctl_result = run(["sysctl", "--system"], check=False)
             elapsed = time.time() - start_time
@@ -150,7 +150,7 @@ class BBRService:
             final_algo = self._get_current_congestion_control()
 
             if final_algo == "bbr":
-                logger.info("✅ BBR успешно включен (алгоритм: bbr) 🎉")
+                logger.info("✅ TCP BBR Congestion Control успешно включен (алгоритм: bbr) 🎉")
             elif final_algo:
                 logger.error(f"❌ Ожидалось 'bbr', но активно: '{final_algo}'")
             else:
@@ -163,13 +163,20 @@ class BBRService:
         except Exception:
             logger.exception("💥 Критическая ошибка при включении BBR")
 
-    def disable_bbr(self) -> None:
+    def disable_bbr(self, confirm: bool = False) -> None:
         """Отключает BBR и возвращает cubic (идемпотентно)"""
+        if confirm:
+            confirmation = input(
+                "⚠️ Вы уверены, что хотите отключить TCP BBR Congestion Control? (y/N): "
+            )
+            if confirmation.lower() not in ["y", "yes"]:
+                print("❌ Отключение BBR отменено пользователем")
+                return
         try:
-            logger.info("🔻 Начало отключения BBR...")
+            logger.info("🔻 Начало отключения TCP BBR Congestion Control...")
 
             # 🔍 Проверка: а может, BBR уже выключен?
-            logger.info("🔍 Проверка текущего состояния...")
+            logger.info("🔍 Проверка текущего состояния алгоритма управления перегрузками...")
             current_algo = self._get_current_congestion_control()
             if current_algo == "cubic":
                 logger.info("✅ Уже используется cubic, ничего не делаем 🎯")
@@ -182,7 +189,9 @@ class BBRService:
                 logger.warning("⚠️ Не удалось определить текущий алгоритм, продолжаем...")
 
             # ♻️ Шаг 1: Восстановление конфига sysctl
-            logger.info("♻️ Восстановление дефолтных настроек в конфиг...")
+            logger.info(
+                "♻️ Восстановление настроек по умолчанию для алгоритма управления перегрузками..."
+            )
             if not self._write_config_file(
                 self.SYSCTL_CONFIG_PATH, self.safe_config, "параметры sysctl по умолчанию"
             ):
@@ -207,7 +216,9 @@ class BBRService:
             final_algo = self._get_current_congestion_control()
 
             if final_algo == "cubic":
-                logger.info("✅ BBR выключен, восстановлен cubic 🎯")
+                logger.info(
+                    "✅ TCP BBR Congestion Control выключен, восстановлен алгоритм cubic 🎯"
+                )
             elif final_algo == "bbr":
                 logger.error("❌ BBR всё ещё активен после отключения")
             elif final_algo:

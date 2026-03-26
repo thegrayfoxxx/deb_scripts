@@ -43,15 +43,10 @@ def interactive_run():
             display_bbr_info()
             interactive_run()
         case "1":
-            print("\nВключение BBR...")
             bbr.enable_bbr()
-            print("\nBBR успешно включен!")
             interactive_run()
         case "2":
-            print("\nОтключение BBR...")
-            bbr.disable_bbr()
-            print("\nBBR успешно отключен!")
+            bbr.disable_bbr(confirm=True)
             interactive_run()
         case _:
-            print("Неверный ввод, попробуйте снова")
             interactive_run()

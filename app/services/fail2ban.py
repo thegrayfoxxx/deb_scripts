@@ -211,9 +211,16 @@ findtime = 1h
         except Exception:
             logger.exception("💥 Критическая ошибка при установке Fail2Ban")
 
-    def uninstall_fail2ban(self):
+    def uninstall_fail2ban(self, confirm: bool = False):
         """Полностью удаляет Fail2Ban и его конфигурацию (идемпотентно)"""
         try:
+            if confirm:
+                confirmation = input(
+                    "⚠️ Вы уверены, что хотите удалить Fail2Ban и все его настройки? (y/N): "
+                )
+                if confirmation.lower() not in ["y", "yes"]:
+                    logger.info("❌ Удаление Fail2Ban отменено пользователем")
+                    return
             logger.warning("⚠️ Начало удаления Fail2Ban...")
 
             # 🔍 Проверка: а установлен ли Fail2Ban вообще?
