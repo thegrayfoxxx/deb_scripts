@@ -85,11 +85,16 @@ The requested mode should be one of:
 
 ## Versioning and tags
 
-- When a logically complete change set should produce a release version bump, update the project version with `uv version`.
+- When a logically complete change set should produce a release version bump, update the project version with `uv version --bump ...`.
 - Use semantic versioning logic:
   - patch: fixes, small compatible improvements, docs-only releases only if the project policy requires it
   - minor: backward-compatible features or meaningful user-visible additions
   - major: breaking changes
+- Use:
+  - `uv version --bump patch`
+  - `uv version --bump minor`
+  - `uv version --bump major`
+- If an exact version is required, use `uv version <value>`.
 - Keep the version bump in the same logical commit set or release step as the change it represents.
 - When a release bump is made, create a matching Git tag for that version unless the user explicitly does not want tagging.
 - Do not bump the version for every commit by default; do it only when the change logically represents a release-worthy increment.
