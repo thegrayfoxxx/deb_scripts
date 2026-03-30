@@ -20,11 +20,16 @@ class UVService:
     UV_TOOL_DIR_CMD = ["uv", "tool", "dir"]
     UV_CACHE_CLEAN_CMD = ["uv", "cache", "clean"]
 
+    def _get_uv_command(self, *args: str) -> list[str]:
+        """Возвращает команду uv, даже если ~/.local/bin ещё не в PATH."""
+        executable = self.UV_EXECUTABLE if self.UV_EXECUTABLE.exists() else "uv"
+        return [str(executable), *args]
+
     def _is_uv_installed(self) -> bool:
         """Проверяет, установлен ли uv в системе"""
         try:
             logger.debug("🔍 Проверка наличия uv...")
-            result = run(self.UV_VERSION_CMD, check=False)
+            result = run(self._get_uv_command("--version"), check=False)
             if result.returncode == 0:
                 version = result.stdout.strip()
                 logger.debug(f"✅ uv найден: {version}")
@@ -46,8 +51,8 @@ class UVService:
         try:
             logger.debug("🔍 Получение путей uv...")
 
-            python_result = run(self.UV_PYTHON_DIR_CMD, check=False)
-            tool_result = run(self.UV_TOOL_DIR_CMD, check=False)
+            python_result = run(self._get_uv_command("python", "dir"), check=False)
+            tool_result = run(self._get_uv_command("tool", "dir"), check=False)
 
             if python_result.returncode == 0 and tool_result.returncode == 0:
                 paths = {
@@ -64,11 +69,8 @@ class UVService:
             logger.debug(f"❌ Ошибка при получении путей: {e}")
             return None
 
-    def _add_to_path_if_needed(self) -> bool:
-        """
-        Проверяет, есть ли ~/.local/bin в PATH, и предупреждает если нет.
-        Returns: True если путь уже в PATH или добавлен успешно
-        """
+    def _is_path_configured(self) -> bool:
+        """Проверяет, есть ли ~/.local/bin в PATH текущего процесса."""
         import os
 
         home_local_bin = str(Path.home() / ".local" / "bin")
@@ -78,10 +80,16 @@ class UVService:
             logger.debug("✅ ~/.local/bin уже в PATH")
             return True
 
+        logger.debug("⚠️ ~/.local/bin не найден в PATH текущего процесса")
+        return False
+
+    def _warn_about_missing_path(self) -> None:
+        """Показывает пользователю краткую подсказку по настройке PATH."""
+        home_local_bin = str(Path.home() / ".local" / "bin")
+
         logger.warning("⚠️ ~/.local/bin не в PATH. Добавьте в ~/.bashrc или ~/.zshrc:")
         logger.warning(f'   export PATH="{home_local_bin}:$PATH"')
         logger.warning("ℹ️ После этого выполните: source ~/.bashrc (или перезапустите терминал)")
-        return False
 
     def install(self) -> bool:
         """Единая точка входа для установки uv."""
@@ -100,38 +108,32 @@ class UVService:
         if not self._is_uv_installed():
             return "uv: not installed"
 
-        version_result = run(self.UV_VERSION_CMD, check=False)
+        version_result = run(self._get_uv_command("--version"), check=False)
         version = version_result.stdout.strip() if version_result.returncode == 0 else "unknown"
-        path_ok = self._add_to_path_if_needed()
-        return (
-            "uv: installed\n"
-            f"Version: {version}\n"
-            f"PATH configured: {'yes' if path_ok else 'no'}"
-        )
+        path_ok = self._is_path_configured()
+        return f"uv: installed\nVersion: {version}\nPATH configured: {'yes' if path_ok else 'no'}"
 
     def install_uv(self) -> bool:
         """Устанавливает uv (идемпотентно: безопасно запускать много раз)"""
         try:
             logger.info("🐍 Начало установки uv (современного менеджера пакетов Python)...")
 
-            # 🔍 Проверка: а может, uv уже установлен?
-            logger.info("🔍 Проверка наличия uv в системе...")
+            logger.debug("🔍 Проверка наличия uv в системе...")
             if self._is_uv_installed():
-                version_result = run(self.UV_VERSION_CMD, check=False)
+                version_result = run(self._get_uv_command("--version"), check=False)
                 version = version_result.stdout.strip()
                 logger.info(f"✅ uv уже установлен: {version} 🎉")
-                self._add_to_path_if_needed()
+                if not self._is_path_configured():
+                    self._warn_about_missing_path()
                 return True
 
-            # 📦 Шаг 1: Установка curl (если нет)
-            logger.info("📦 Проверка наличия утилиты curl для загрузки установщика...")
+            logger.debug("📦 Проверка наличия утилиты curl для загрузки установщика...")
             curl_result = run(["apt", "install", "-y", "curl"], check=False)
             logger.debug(f"📋 apt install curl вывод:\n{curl_result.stdout.strip()}")
             if curl_result.returncode != 0:
                 logger.warning("⚠️ curl уже установлен или возникла незначительная ошибка")
 
-            # ⬇️ Шаг 2: Скачивание скрипта установки
-            logger.info("⬇️ Скачивание официального скрипта установки uv с astral.sh...")
+            logger.info("⬇️ Запуск официального установщика uv...")
             download_result = run(
                 ["curl", "-LsSf", self.UV_INSTALL_URL, "-o", "uv_install.sh"], check=False
             )
@@ -140,8 +142,7 @@ class UVService:
                 return False
             logger.debug("✅ Скрипт загружен")
 
-            # 🔧 Шаг 3: Запуск установки
-            logger.info("🔧 Запуск установки uv в неинтерактивном режиме...")
+            logger.debug("🔧 Запуск установки uv в неинтерактивном режиме...")
             install_result = run(
                 ["sh", "./uv_install.sh"],
                 check=False,
@@ -154,22 +155,21 @@ class UVService:
                 return False
             logger.debug("✅ Скрипт установки завершён")
 
-            # 🧹 Шаг 4: Очистка временных файлов
-            logger.info("🧹 Очистка временных файлов после установки uv...")
+            logger.debug("🧹 Очистка временных файлов после установки uv...")
             run(["rm", "-f", "uv_install.sh"], check=False)
             logger.debug("✅ uv_install.sh удалён")
 
-            # ✅ Шаг 5: Финальная проверка установки
-            logger.info("🔍 Финальная проверка успешной установки uv...")
+            logger.debug("🔍 Финальная проверка успешной установки uv...")
             if self._is_uv_installed():
-                version_result = run(self.UV_VERSION_CMD, check=False)
+                version_result = run(self._get_uv_command("--version"), check=False)
                 version = version_result.stdout.strip()
                 logger.info(f"✅ uv успешно установлен! {version} 🎉")
-                self._add_to_path_if_needed()
+                if not self._is_path_configured():
+                    self._warn_about_missing_path()
                 return True
 
             logger.error("❌ uv не обнаружен после установки")
-            logger.warning("💡 Попробуйте выполнить: source ~/.local/bin/env")
+            logger.warning("💡 Проверьте, что ~/.local/bin добавлен в PATH текущего пользователя")
             return False
 
         except FileNotFoundError as e:
@@ -195,34 +195,31 @@ class UVService:
 
             logger.warning("⚠️ Начало удаления uv (современного менеджера пакетов Python)...")
 
-            # 🔍 Проверка: а установлен ли uv вообще?
-            logger.info("🔍 Проверка наличия uv в системе...")
+            logger.debug("🔍 Проверка наличия uv в системе...")
             if not self._is_uv_installed():
                 logger.info("✅ uv не установлен, пропускаем удаление 🧹")
                 run(["rm", "-f", str(self.UV_EXECUTABLE), str(self.UVX_EXECUTABLE)], check=False)
                 return True
 
-            # 🗑️ Шаг 1: Очистка кэша
-            logger.info("🧹 Очистка кэша uv (временные файлы и зависимости)...")
-            cache_result = run(self.UV_CACHE_CLEAN_CMD, check=False)
+            logger.debug("🧹 Очистка кэша uv (временные файлы и зависимости)...")
+            cache_result = run(self._get_uv_command("cache", "clean"), check=False)
             logger.debug(f"📋 uv cache clean вывод:\n{cache_result.stdout.strip()}")
             if cache_result.returncode == 0:
                 logger.debug("✅ Кэш очищен")
             else:
                 logger.warning("⚠️ Не удалось очистить кэш (возможно, уже пуст)")
 
-            # 📁 Шаг 2: Получение путей к данным
-            logger.info("🔍 Получение путей к директориям данных uv...")
+            logger.debug("🔍 Получение путей к директориям данных uv...")
             paths = self._get_uv_paths()
 
             if paths:
-                logger.info(f"🗑️ Удаление директории Python: {paths['python']}...")
+                logger.debug(f"🗑️ Удаление директории Python: {paths['python']}...")
                 python_result = run(["rm", "-rf", paths["python"]], check=False)
                 logger.debug(
                     f"🗑️ Python dir: {'удалено' if python_result.returncode == 0 else 'ошибка'}"
                 )
 
-                logger.info(f"🗑️ Удаление директории инструментов: {paths['tool']}...")
+                logger.debug(f"🗑️ Удаление директории инструментов: {paths['tool']}...")
                 tool_result = run(["rm", "-rf", paths["tool"]], check=False)
                 logger.debug(
                     f"🗑️ Tool dir: {'удалено' if tool_result.returncode == 0 else 'ошибка'}"
@@ -230,27 +227,26 @@ class UVService:
             else:
                 logger.warning("⚠️ Не удалось получить пути uv, пропускаем удаление директорий")
 
-            # 🧹 Шаг 3: Удаление исполняемых файлов
-            logger.info("🧹 Удаление исполняемых файлов uv и uvx...")
+            logger.debug("🧹 Удаление исполняемых файлов uv и uvx...")
             bin_result = run(
                 ["rm", "-f", str(self.UV_EXECUTABLE), str(self.UVX_EXECUTABLE)], check=False
             )
             logger.debug(f"🗑️ Bin files: {'удалено' if bin_result.returncode == 0 else 'ошибка'}")
 
-            # ♻️ Шаг 4: Очистка env-файла (опционально)
             if self.ENV_FILE.exists():
-                logger.info("🧹 Очистка env-файла...")
+                logger.debug("🧹 Очистка env-файла...")
                 run(["rm", "-f", str(self.ENV_FILE)], check=False)
                 logger.debug(f"✅ Удалён {self.ENV_FILE}")
 
-            # 🔍 Шаг 5: Финальная проверка
-            logger.info("🔍 Финальная проверка полного удаления uv из системы...")
+            logger.debug("🔍 Финальная проверка полного удаления uv из системы...")
             if not self._is_uv_installed():
                 logger.info("✅ uv полностью удалён 🧹")
                 return True
 
             logger.warning("⚠️ uv всё ещё обнаружен в системе")
-            logger.warning("💡 Попробуйте удалить вручную: rm -rf ~/.local/bin/uv ~/.local/bin/uvx")
+            logger.warning(
+                "💡 Попробуйте удалить вручную: rm -rf ~/.local/bin/uv ~/.local/bin/uvx"
+            )
             return False
 
         except FileNotFoundError:

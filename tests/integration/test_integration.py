@@ -71,7 +71,7 @@ class TestIntegration:
             result = service._is_uv_installed()
 
         assert result is True
-        mock_run.assert_called_once_with(["uv", "--version"], check=False)
+        mock_run.assert_called_once_with(service._get_uv_command("--version"), check=False)
 
     def test_traffic_guard_check_root_uses_effective_uid(self):
         service = TrafficGuardService()

@@ -16,7 +16,9 @@ class TestUVService:
             mock_run.return_value = mock_result
 
             assert self.service._is_uv_installed() is True
-            mock_run.assert_called_once_with(["uv", "--version"], check=False)
+            mock_run.assert_called_once_with(
+                self.service._get_uv_command("--version"), check=False
+            )
 
     def test_is_uv_installed_failure_returncode(self, mock_subprocess_result):
         """Тест проверки наличия uv с ошибкой возврата"""
@@ -60,23 +62,83 @@ class TestUVService:
 
     @patch("app.services.uv.Path.home")
     @patch("os.environ.get")
-    def test_add_to_path_if_needed_already_present(self, mock_environ_get, mock_home):
+    def test_is_path_configured_already_present(self, mock_environ_get, mock_home):
         """Тест проверки PATH когда путь уже добавлен"""
         mock_home.return_value = Path("/root")  # Docker container uses root user
         mock_environ_get.return_value = (
             "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.local/bin"
         )
 
-        assert self.service._add_to_path_if_needed() is True
+        assert self.service._is_path_configured() is True
 
     @patch("app.services.uv.Path.home")
     @patch("os.environ.get")
-    def test_add_to_path_if_needed_missing(self, mock_environ_get, mock_home):
+    def test_is_path_configured_missing(self, mock_environ_get, mock_home):
         """Тест проверки PATH когда путь отсутствует"""
         mock_environ_get.return_value = "/usr/bin:/bin"
         mock_home.return_value = Path("/home/user")
 
-        assert self.service._add_to_path_if_needed() is False
+        assert self.service._is_path_configured() is False
+
+    @patch("os.environ.get", return_value="/usr/bin:/bin")
+    @patch("app.services.uv.run")
+    def test_get_status_uses_direct_uv_path_when_not_in_path(
+        self, mock_run, _mock_environ_get, tmp_path
+    ):
+        """Статус должен работать, даже если uv есть только в ~/.local/bin"""
+        executable = tmp_path / "uv"
+        executable.touch()
+        self.service.UV_EXECUTABLE = executable
+        mock_run.return_value = Mock(returncode=0, stdout="uv 0.7.0\n")
+
+        status = self.service.get_status()
+
+        assert "uv: installed" in status
+        assert "uv 0.7.0" in status
+        assert "PATH configured: no" in status
+        mock_run.assert_any_call([str(executable), "--version"], check=False)
+
+    @patch("os.environ.get", return_value="/usr/bin:/bin")
+    @patch("app.services.uv.run")
+    def test_install_uv_already_installed_via_direct_path(
+        self, mock_run, _mock_environ_get, tmp_path
+    ):
+        """Установка не должна переустанавливать uv, если бинарник есть вне PATH"""
+        executable = tmp_path / "uv"
+        executable.touch()
+        self.service.UV_EXECUTABLE = executable
+        mock_run.return_value = Mock(returncode=0, stdout="uv 0.7.0\n")
+
+        result = self.service.install_uv()
+
+        assert result is True
+        version_calls = [
+            call_args
+            for call_args in mock_run.call_args_list
+            if call_args.args == ([str(executable), "--version"],)
+        ]
+        assert version_calls
+        assert not any(
+            "uv_install.sh" in " ".join(call.args[0]) for call in mock_run.call_args_list
+        )
+
+    @patch("app.services.uv.logger")
+    @patch("os.environ.get", return_value="/usr/bin:/bin")
+    @patch("app.services.uv.run")
+    def test_install_uv_warns_about_missing_path_when_already_installed(
+        self, mock_run, _mock_environ_get, mock_logger, tmp_path
+    ):
+        executable = tmp_path / "uv"
+        executable.touch()
+        self.service.UV_EXECUTABLE = executable
+        mock_run.return_value = Mock(returncode=0, stdout="uv 0.7.0\n")
+
+        result = self.service.install_uv()
+
+        assert result is True
+        mock_logger.warning.assert_any_call(
+            "⚠️ ~/.local/bin не в PATH. Добавьте в ~/.bashrc или ~/.zshrc:"
+        )
 
     def test_install_uv_already_installed(self, mock_subprocess_result):
         """Тест установки uv когда он уже установлен"""
@@ -94,7 +156,7 @@ class TestUVService:
             # The install_uv method calls _add_to_path_if_needed which triggers another check
             # So we expect 2 calls: one for the initial check and one from _add_to_path_if_needed
             assert mock_run.call_count == 2
-            mock_run.assert_any_call(["uv", "--version"], check=False)
+            mock_run.assert_any_call(self.service._get_uv_command("--version"), check=False)
 
     @patch("app.services.uv.run")
     def test_uninstall_uv_not_installed(self, mock_run):
@@ -105,7 +167,7 @@ class TestUVService:
         self.service.uninstall_uv()
 
         # Should try to check if uv is installed first
-        mock_run.assert_any_call(["uv", "--version"], check=False)
+        mock_run.assert_any_call(self.service._get_uv_command("--version"), check=False)
 
     def test_install_uv_first_time(self, mock_subprocess_result):
         """Тест установки uv при первом запуске"""
@@ -120,8 +182,9 @@ class TestUVService:
             ),  # uv --version success after install
         ]
 
-        with patch("app.services.uv.run") as mock_run, patch(
-            "os.environ.get", return_value="/some/path"
+        with (
+            patch("app.services.uv.run") as mock_run,
+            patch("os.environ.get", return_value="/some/path"),
         ):
             mock_run.side_effect = side_effects
 

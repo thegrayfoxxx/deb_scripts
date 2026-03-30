@@ -11,8 +11,9 @@ from app.services.uv import UVService
 def test_bbr_get_status_enabled():
     service = BBRService()
 
-    with patch.object(service, "_get_current_congestion_control", return_value="bbr"), patch.object(
-        service, "_is_bbr_module_loaded", return_value=True
+    with (
+        patch.object(service, "_get_current_congestion_control", return_value="bbr"),
+        patch.object(service, "_is_bbr_module_loaded", return_value=True),
     ):
         status = service.get_status()
 
@@ -41,9 +42,11 @@ def test_fail2ban_get_status_not_installed():
 def test_trafficguard_get_status_installed():
     service = TrafficGuardService()
 
-    with patch.object(service, "_is_trafficguard_installed", return_value=True), patch.object(
-        service, "_get_service_status", return_value="active"
-    ), patch("app.services.traffic_guard.run") as mock_run:
+    with (
+        patch.object(service, "_is_trafficguard_installed", return_value=True),
+        patch.object(service, "_get_service_status", return_value="active"),
+        patch("app.services.traffic_guard.run") as mock_run,
+    ):
         mock_run.return_value = Mock(returncode=0, stdout="TrafficGuard v1.0\n")
         status = service.get_status()
 
@@ -55,9 +58,11 @@ def test_trafficguard_get_status_installed():
 def test_uv_get_status_installed():
     service = UVService()
 
-    with patch.object(service, "_is_uv_installed", return_value=True), patch.object(
-        service, "_add_to_path_if_needed", return_value=True
-    ), patch("app.services.uv.run") as mock_run:
+    with (
+        patch.object(service, "_is_uv_installed", return_value=True),
+        patch.object(service, "_is_path_configured", return_value=True),
+        patch("app.services.uv.run") as mock_run,
+    ):
         mock_run.return_value = Mock(returncode=0, stdout="uv 0.7.0\n")
         status = service.get_status()
 
