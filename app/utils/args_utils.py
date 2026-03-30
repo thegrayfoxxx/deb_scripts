@@ -1,6 +1,8 @@
 import argparse
 import sys
 
+from app.utils.service_registry import format_service_codes_help
+
 
 def parse_args(argv: list[str] | None = None):
     raw_argv = sys.argv[1:] if argv is None else argv
@@ -28,13 +30,13 @@ def parse_args(argv: list[str] | None = None):
         "--install",
         nargs="+",
         type=str,
-        help="Режим неинтерактивной установки: 1=UFW, 2=BBR, 3=Docker, 4=Fail2Ban, 5=TrafficGuard, 6=UV",
+        help=f"Режим неинтерактивной установки: {format_service_codes_help()}",
     )
     parser.add_argument(
         "--uninstall",
         nargs="+",
         type=str,
-        help="Режим неинтерактивного удаления: 1=UFW, 2=BBR, 3=Docker, 4=Fail2Ban, 5=TrafficGuard, 6=UV",
+        help=f"Режим неинтерактивного удаления: {format_service_codes_help()}",
     )
 
     parsed = parser.parse_args(raw_argv)

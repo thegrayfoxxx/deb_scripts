@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+
 from app.utils import args_utils
 
 
@@ -14,7 +16,9 @@ class TestArgsUtils:
         assert parsed.uninstall is None
 
     def test_parse_args_accepts_log_level_and_install_codes(self):
-        with patch("sys.argv", ["script_name", "--log-level", "debug", "--install", "1", "6"]):
+        with patch(
+            "sys.argv", ["script_name", "--log-level", "debug", "--install", "1", "6"]
+        ):
             parsed = args_utils.parse_args()
 
         assert parsed.mode == "prod"
@@ -46,6 +50,16 @@ class TestArgsUtils:
 
         assert parsed.mode == "dev"
         assert parsed.log_level == "debug"
+
+    def test_parse_args_help_includes_registry_service_codes(self, capsys):
+        with patch("sys.argv", ["script_name", "--help"]):
+            with pytest.raises(SystemExit) as exc:
+                args_utils.parse_args()
+
+        assert exc.value.code == 0
+        help_output = capsys.readouterr().out
+        assert "1=UFW" in help_output
+        assert "6=UV" in help_output
 
     def test_get_app_args_in_pytest_context_has_expected_defaults(self):
         args = args_utils.get_app_args()

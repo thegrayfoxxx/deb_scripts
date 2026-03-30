@@ -84,14 +84,6 @@ def mock_system_commands():
         yield mock_geteuid, mock_run
 
 
-# Hook to add custom markers
-def pytest_configure(config):
-    config.addinivalue_line("markers", "integration: marks tests as integration tests")
-    config.addinivalue_line("markers", "unit: marks tests as unit tests")
-    config.addinivalue_line("markers", "system: marks tests as system tests")
-    config.addinivalue_line("markers", "slow: marks tests as slow running")
-
-
 def pytest_collection_modifyitems(config, items):
     """Добавляем метки для тестов автоматически на основе их типа"""
     for item in items:
