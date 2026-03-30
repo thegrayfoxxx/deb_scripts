@@ -19,14 +19,8 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 COPY . /app
 
-# Install uv package manager
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-
 RUN apt-get update && apt-get install -y python3-pytest python3-pytest-cov && \
     rm -rf /var/lib/apt/lists/*
-
-# Add uv to PATH
-ENV PATH="/root/.local/bin:${PATH}"
 
 # Create both users to support devcontainer development and isolated test scenarios
 RUN useradd -m -s /bin/bash tester && \
