@@ -82,3 +82,14 @@ The requested mode should be one of:
 - Group only files that belong to the same change.
 - A commit may include source changes plus the tests and helper updates required for that exact behavior.
 - Do not mix unrelated docs, refactors, logging changes, and feature work in the same commit.
+
+## Versioning and tags
+
+- When a logically complete change set should produce a release version bump, update the project version with `uv version`.
+- Use semantic versioning logic:
+  - patch: fixes, small compatible improvements, docs-only releases only if the project policy requires it
+  - minor: backward-compatible features or meaningful user-visible additions
+  - major: breaking changes
+- Keep the version bump in the same logical commit set or release step as the change it represents.
+- When a release bump is made, create a matching Git tag for that version unless the user explicitly does not want tagging.
+- Do not bump the version for every commit by default; do it only when the change logically represents a release-worthy increment.
