@@ -50,21 +50,18 @@ class DockerService:
         try:
             logger.info("🐳 Начало установки Docker Engine...")
 
-            # 🔍 Проверка: а может, Docker уже установлен?
-            logger.info("🔍 Проверка наличия Docker Engine...")
+            logger.debug("🔍 Проверка наличия Docker Engine...")
             if version := self._get_docker_version():
                 logger.info(f"✅ Docker Engine уже установлен: {version} 🎉")
                 return True
 
-            # Шаг 1: Установка curl (если нет)
-            logger.info("📦 Установка утилиты curl для загрузки скрипта...")
+            logger.debug("📦 Установка утилиты curl для загрузки скрипта...")
             curl_result = run(["apt", "install", "-y", "curl"], check=False)
             logger.debug(f"📋 apt install curl вывод:\n{curl_result.stdout.strip()}")
             if curl_result.returncode != 0:
                 logger.warning("⚠️ curl уже установлен или возникла незначительная ошибка")
 
-            # Шаг 2: Скачивание скрипта установки
-            logger.info("⬇️ Скачивание официального скрипта get-docker.sh...")
+            logger.info("⬇️ Запуск официального установщика Docker...")
             download_result = run(
                 ["curl", "-fsSL", "https://get.docker.com", "-o", "get-docker.sh"], check=False
             )
@@ -73,21 +70,18 @@ class DockerService:
                 return False
             logger.debug("✅ Скрипт загружен")
 
-            # Шаг 3: Запуск установки
-            logger.info("🔧 Запуск установки Docker Engine через официальный скрипт...")
+            logger.debug("🔧 Запуск установки Docker Engine через официальный скрипт...")
             install_result = run(["sh", "./get-docker.sh"], check=False)
             logger.debug(f"📋 get-docker.sh вывод:\n{install_result.stdout.strip()}")
             if install_result.returncode != 0:
                 logger.error("❌ Ошибка при выполнении скрипта установки Docker")
                 return False
 
-            # Шаг 4: Очистка
-            logger.info("🧹 Очистка временных файлов после установки...")
+            logger.debug("🧹 Очистка временных файлов после установки...")
             run(["rm", "./get-docker.sh"], check=False)
             logger.debug("✅ get-docker.sh удалён")
 
-            # Шаг 5: Финальная проверка установки
-            logger.info("🔍 Финальная проверка установки...")
+            logger.debug("🔍 Финальная проверка установки...")
             if version := self._get_docker_version():
                 logger.info(f"✅ Docker Engine успешно установлен! {version} 🎉")
                 return True
@@ -119,8 +113,7 @@ class DockerService:
             logger.warning("⚠️ Начало удаления Docker Engine...")
             logger.warning("⚠️ Все контейнеры, образы и тома будут безвозвратно удалены!")
 
-            # 🔍 Проверка: а установлен ли Docker вообще?
-            logger.info("🔍 Проверка наличия Docker Engine...")
+            logger.debug("🔍 Проверка наличия Docker Engine...")
             if not self._get_docker_version():
                 logger.info("✅ Docker Engine не установлен, пропускаем удаление 🧹")
                 run(["rm", "-f", "/etc/apt/sources.list.d/docker.list"], check=False)
@@ -128,8 +121,7 @@ class DockerService:
                 logger.debug("✅ Конфигурационные файлы удалены")
                 return True
 
-            # Шаг 1: Удаление пакетов (с обработкой "уже не установлен")
-            logger.info("🗑️ Удаление пакетов Docker Engine...")
+            logger.debug("🗑️ Удаление пакетов Docker Engine...")
             try:
                 purge_result = run(
                     [
@@ -146,17 +138,15 @@ class DockerService:
                     ]
                 )
                 logger.debug(f"📋 apt purge вывод:\n{purge_result.stdout.strip()}")
-                logger.info("✅ Пакеты Docker Engine успешно удалены")
+                logger.debug("✅ Пакеты Docker Engine успешно удалены")
             except subprocess.CalledProcessError as e:
                 if e.returncode == 100:
                     logger.info("✅ Пакеты Docker Engine уже удалены или не были установлены")
                 else:
-                    logger.warning(
-                        f"⚠️ Предупреждение при удалении пакетов (код {e.returncode}): {e.stderr.strip()}"
-                    )
+                    logger.warning("⚠️ Удаление пакетов Docker завершилось с предупреждением")
+                    logger.debug(f"apt purge stderr: {e.stderr.strip()}")
 
-            # Шаг 2: Удаление данных Docker
-            logger.info("🧹 Удаление данных Docker Engine (контейнеры, образы, тома)...")
+            logger.debug("🧹 Удаление данных Docker Engine (контейнеры, образы, тома)...")
             docker_data = run(["rm", "-rf", "/var/lib/docker"], check=False)
             logger.debug(
                 f"🗑️ /var/lib/docker: {'удалено' if docker_data.returncode == 0 else 'ошибка'}"
@@ -167,14 +157,12 @@ class DockerService:
                 f"🗑️ /var/lib/containerd: {'удалено' if containerd_data.returncode == 0 else 'ошибка'}"
             )
 
-            # Шаг 3: Очистка конфигов (всегда в конце)
-            logger.info("🧹 Очистка конфигурационных файлов Docker Engine...")
+            logger.debug("🧹 Очистка конфигурационных файлов Docker Engine...")
             run(["rm", "-f", "/etc/apt/sources.list.d/docker.list"], check=False)
             run(["rm", "-f", "/etc/apt/keyrings/docker.asc"], check=False)
             logger.debug("✅ Конфигурационные файлы удалены")
 
-            # Шаг 4: Проверка удаления
-            logger.info("🔍 Проверка успешного удаления Docker Engine...")
+            logger.debug("🔍 Проверка успешного удаления Docker Engine...")
             if not self._get_docker_version():
                 logger.info("✅ Docker Engine полностью удален 🧹")
                 return True
