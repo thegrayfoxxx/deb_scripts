@@ -68,11 +68,12 @@ class TestUfwSystemService:
     def test_ufw_install_already_present(self):
         """Тест установки UFW когда он уже установлен"""
         with patch.object(self.service, "is_installed", return_value=True):
-            with patch.object(self.service, "_ensure_ssh_allowed") as mock_ensure_ssh:
+            with patch.object(self.service, "ensure_safe_baseline") as mock_safe_baseline:
+                mock_safe_baseline.return_value = True
                 result = self.service.install()
 
                 assert result is True
-                mock_ensure_ssh.assert_called_once()
+                mock_safe_baseline.assert_called_once()
 
     def test_ufw_install_requires_root(self):
         """Тест что установка UFW требует root прав"""

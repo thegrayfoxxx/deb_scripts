@@ -198,19 +198,15 @@ class TestInteractiveInterfacesIntegration:
         """Тест обработки неверного ввода в главном меню"""
         with (
             patch("builtins.input", side_effect=["99", "0"]),  # Неверный ввод, затем выход
-            patch("builtins.print"),
+            patch("builtins.print") as mock_print,
         ):
-            # Мокаем рекурсивный вызов, чтобы не зациклиться
-            with patch.object(
-                run, "run_interactive_script", wraps=run.run_interactive_script
-            ) as mock_recursive:
-                try:
-                    run.run_interactive_script()
-                except SystemExit:
-                    pass
+            try:
+                run.run_interactive_script()
+            except SystemExit:
+                pass
 
-            # Проверяем, что функция была вызвана дважды: первый раз с неверным вводом, второй раз после рекурсии
-            assert mock_recursive.call_count >= 1
+            printed_texts = [call.args[0] for call in mock_print.call_args_list if call.args]
+            assert any("❌ Неверный ввод, попробуйте снова" in text for text in printed_texts)
 
     def test_main_menu_exit_option(self):
         """Тест опции выхода из главного меню"""

@@ -12,6 +12,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "app"))
 from app.services.bbr import BBRService
 
 
+def _require_sysctl():
+    result = subprocess.run(["which", "sysctl"], capture_output=True, text=True)
+    if result.returncode != 0:
+        pytest.skip("sysctl недоступен в текущем окружении")
+
+
 @pytest.mark.system
 class TestBBRSystemService:
     """Системные тесты для сервиса BBR"""
@@ -21,9 +27,7 @@ class TestBBRSystemService:
 
     def test_check_bbr_available(self):
         """Проверяем, доступен ли BBR в системе (через проверку модуля)"""
-        # В тестовом контейнере проверим наличие sysctl
-        result = subprocess.run(["which", "sysctl"], capture_output=True, text=True)
-        assert result.returncode == 0
+        _require_sysctl()
 
         # Проверим, можно ли получить значение net.core.default_qdisc
         result = subprocess.run(
@@ -34,6 +38,8 @@ class TestBBRSystemService:
 
     def test_bbr_kernel_parameters_exist(self):
         """Проверяем существование необходимых параметров ядра для BBR"""
+        _require_sysctl()
+
         # Проверяем, существуют ли файлы в /proc/sys/net/...
         net_params = [
             "net/core/default_qdisc",
@@ -49,6 +55,8 @@ class TestBBRSystemService:
 
     def test_sysctl_command_execution(self):
         """Тестирование выполнения команд sysctl"""
+        _require_sysctl()
+
         # Проверяем, можем ли прочитать текущую конфигурацию
         try:
             result = subprocess.run(
@@ -92,9 +100,7 @@ class TestBBRSystemService:
         # В реальном тестовом окружении мы не будем действительно включать BBR,
         # но проверим, доступны ли необходимые для этого команды
 
-        # Проверяем доступность sysctl
-        result = subprocess.run(["which", "sysctl"], capture_output=True, text=True)
-        assert result.returncode == 0
+        _require_sysctl()
 
         # Проверяем доступность модулей ядра (проверяем через lsmod или наличие файлов)
         # lsmod может быть недоступен в контейнере, поэтому проверяем это
@@ -123,6 +129,8 @@ class TestBBRSystemService:
 
     def test_bbr_status_methods(self):
         """Тестирование методов проверки статуса BBR"""
+        _require_sysctl()
+
         # Просто проверяем, что методы не выбрасывают исключений при вызове
         # в реальной системе
 

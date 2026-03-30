@@ -19,11 +19,10 @@ def test_run_non_interactive_install_bbr():
     with patch("app.interfaces.cli.non_interactive.BBRService") as mock_bbr_service:
         mock_bbr_service.return_value = mock_bbr_instance
 
-        # Run the function with args directly
-        run_non_interactive_commands(args)
+        result = run_non_interactive_commands(args)
 
-        # Verify that the enable_bbr method was called
-        mock_bbr_instance.enable_bbr.assert_called_once()
+        assert result is True
+        mock_bbr_instance.install.assert_called_once()
 
 
 def test_run_non_interactive_install_docker():
@@ -42,11 +41,10 @@ def test_run_non_interactive_install_docker():
     with patch("app.interfaces.cli.non_interactive.DockerService") as mock_docker_service:
         mock_docker_service.return_value = mock_docker_instance
 
-        # Run the function with args directly
-        run_non_interactive_commands(args)
+        result = run_non_interactive_commands(args)
 
-        # Verify that the install_docker method was called
-        mock_docker_instance.install_docker.assert_called_once()
+        assert result is True
+        mock_docker_instance.install.assert_called_once()
 
 
 def test_run_non_interactive_uninstall_fail2ban():
@@ -65,11 +63,10 @@ def test_run_non_interactive_uninstall_fail2ban():
     with patch("app.interfaces.cli.non_interactive.Fail2BanService") as mock_f2b_service:
         mock_f2b_service.return_value = mock_f2b_instance
 
-        # Run the function with args directly
-        run_non_interactive_commands(args)
+        result = run_non_interactive_commands(args)
 
-        # Verify that the uninstall_fail2ban method was called
-        mock_f2b_instance.uninstall_fail2ban.assert_called_once()
+        assert result is True
+        mock_f2b_instance.uninstall.assert_called_once()
 
 
 def test_run_non_interactive_install_trafficguard():
@@ -88,11 +85,10 @@ def test_run_non_interactive_install_trafficguard():
     with patch("app.interfaces.cli.non_interactive.TrafficGuardService") as mock_tg_service:
         mock_tg_service.return_value = mock_tg_instance
 
-        # Run the function with args directly
-        run_non_interactive_commands(args)
+        result = run_non_interactive_commands(args)
 
-        # Verify that the install_trafficguard method was called
-        mock_tg_instance.install_trafficguard.assert_called_once()
+        assert result is True
+        mock_tg_instance.install.assert_called_once()
 
 
 def test_run_non_interactive_install_uv():
@@ -111,11 +107,10 @@ def test_run_non_interactive_install_uv():
     with patch("app.interfaces.cli.non_interactive.UVService") as mock_uv_service:
         mock_uv_service.return_value = mock_uv_instance
 
-        # Run the function with args directly
-        run_non_interactive_commands(args)
+        result = run_non_interactive_commands(args)
 
-        # Verify that the install_uv method was called
-        mock_uv_instance.install_uv.assert_called_once()
+        assert result is True
+        mock_uv_instance.install.assert_called_once()
 
 
 def test_run_non_interactive_uninstall_multiple_services():
@@ -142,12 +137,11 @@ def test_run_non_interactive_uninstall_multiple_services():
         mock_bbr_service.return_value = mock_bbr_instance
         mock_docker_service.return_value = mock_docker_instance
 
-        # Run the function with args directly
-        run_non_interactive_commands(args)
+        result = run_non_interactive_commands(args)
 
-        # Verify that both methods were called
-        mock_bbr_instance.disable_bbr.assert_called_once()
-        mock_docker_instance.uninstall_docker.assert_called_once()
+        assert result is True
+        mock_bbr_instance.uninstall.assert_called_once()
+        mock_docker_instance.uninstall.assert_called_once()
 
 
 def test_run_non_interactive_install_multiple_services():
@@ -174,12 +168,11 @@ def test_run_non_interactive_install_multiple_services():
         mock_bbr_service.return_value = mock_bbr_instance
         mock_docker_service.return_value = mock_docker_instance
 
-        # Run the function with args directly
-        run_non_interactive_commands(args)
+        result = run_non_interactive_commands(args)
 
-        # Verify that both methods were called
-        mock_bbr_instance.enable_bbr.assert_called_once()
-        mock_docker_instance.install_docker.assert_called_once()
+        assert result is True
+        mock_bbr_instance.install.assert_called_once()
+        mock_docker_instance.install.assert_called_once()
 
 
 def test_run_non_interactive_mixed_operations():
@@ -206,12 +199,11 @@ def test_run_non_interactive_mixed_operations():
         mock_bbr_service.return_value = mock_bbr_instance
         mock_docker_service.return_value = mock_docker_instance
 
-        # Run the function with args directly
-        run_non_interactive_commands(args)
+        result = run_non_interactive_commands(args)
 
-        # Verify that both operations were called
-        mock_bbr_instance.enable_bbr.assert_called_once()
-        mock_docker_instance.uninstall_docker.assert_called_once()
+        assert result is True
+        mock_bbr_instance.install.assert_called_once()
+        mock_docker_instance.uninstall.assert_called_once()
 
 
 def test_run_non_interactive_invalid_service_code_install():
@@ -226,9 +218,9 @@ def test_run_non_interactive_invalid_service_code_install():
 
     # Should not crash with invalid code
     with patch("app.interfaces.cli.non_interactive.logger") as mock_logger:
-        run_non_interactive_commands(args)
+        result = run_non_interactive_commands(args)
 
-        # Verify that an error was logged for the invalid code
+        assert result is False
         mock_logger.error.assert_called_with("❌ Неизвестный код сервиса для установки: 99")
 
 
@@ -244,9 +236,9 @@ def test_run_non_interactive_invalid_service_code_uninstall():
 
     # Should not crash with invalid code
     with patch("app.interfaces.cli.non_interactive.logger") as mock_logger:
-        run_non_interactive_commands(args)
+        result = run_non_interactive_commands(args)
 
-        # Verify that an error was logged for the invalid code
+        assert result is False
         mock_logger.error.assert_called_with("❌ Неизвестный код сервиса для удаления: 99")
 
 
@@ -260,12 +252,8 @@ def test_run_non_interactive_no_operations():
 
     args = TestArgs()
 
-    # Should not crash and should not attempt to call any service methods
-    with patch("app.interfaces.cli.non_interactive.logger") as mock_logger:
-        run_non_interactive_commands(args)
-
-        # Verify that the completion message was logged
-        mock_logger.info.assert_any_call("✅ Неинтерактивные команды выполнены.")
+    result = run_non_interactive_commands(args)
+    assert result is True
 
 
 def test_run_non_interactive_all_services():
@@ -301,16 +289,15 @@ def test_run_non_interactive_all_services():
         mock_tg_service.return_value = mock_tg_instance
         mock_uv_service.return_value = mock_uv_instance
 
-        # Run the function with args directly
-        run_non_interactive_commands(args)
+        result = run_non_interactive_commands(args)
 
-        # Verify that all install methods were called
+        assert result is True
         mock_ufw_instance.install.assert_called_once()
-        mock_bbr_instance.enable_bbr.assert_called_once()
-        mock_docker_instance.install_docker.assert_called_once()
-        mock_f2b_instance.install_fail2ban.assert_called_once()
-        mock_tg_instance.install_trafficguard.assert_called_once()
-        mock_uv_instance.install_uv.assert_called_once()
+        mock_bbr_instance.install.assert_called_once()
+        mock_docker_instance.install.assert_called_once()
+        mock_f2b_instance.install.assert_called_once()
+        mock_tg_instance.install.assert_called_once()
+        mock_uv_instance.install.assert_called_once()
 
 
 def test_run_non_interactive_uninstall_all_services():
@@ -346,16 +333,15 @@ def test_run_non_interactive_uninstall_all_services():
         mock_tg_service.return_value = mock_tg_instance
         mock_uv_service.return_value = mock_uv_instance
 
-        # Run the function with args directly
-        run_non_interactive_commands(args)
+        result = run_non_interactive_commands(args)
 
-        # Verify that all uninstall methods were called
+        assert result is True
         mock_ufw_instance.uninstall.assert_called_once()
-        mock_bbr_instance.disable_bbr.assert_called_once()
-        mock_docker_instance.uninstall_docker.assert_called_once()
-        mock_f2b_instance.uninstall_fail2ban.assert_called_once()
-        mock_tg_instance.uninstall_trafficguard.assert_called_once()
-        mock_uv_instance.uninstall_uv.assert_called_once()
+        mock_bbr_instance.uninstall.assert_called_once()
+        mock_docker_instance.uninstall.assert_called_once()
+        mock_f2b_instance.uninstall.assert_called_once()
+        mock_tg_instance.uninstall.assert_called_once()
+        mock_uv_instance.uninstall.assert_called_once()
 
 
 def test_run_non_interactive_install_uninstall_same_service():
@@ -374,9 +360,28 @@ def test_run_non_interactive_install_uninstall_same_service():
     with patch("app.interfaces.cli.non_interactive.BBRService") as mock_bbr_service:
         mock_bbr_service.return_value = mock_bbr_instance
 
-        # Run the function with args directly
-        run_non_interactive_commands(args)
+        result = run_non_interactive_commands(args)
 
-        # Both operations should be performed in order
-        mock_bbr_instance.enable_bbr.assert_called_once()
-        mock_bbr_instance.disable_bbr.assert_called_once()
+        assert result is True
+        mock_bbr_instance.install.assert_called_once()
+        mock_bbr_instance.uninstall.assert_called_once()
+
+
+def test_run_non_interactive_returns_false_when_service_returns_false():
+    """Test non-interactive mode propagates explicit service failure."""
+
+    class TestArgs:
+        install = ["1"]
+        uninstall = None
+
+    args = TestArgs()
+    mock_ufw_instance = MagicMock()
+    mock_ufw_instance.install.return_value = False
+
+    with patch("app.interfaces.cli.non_interactive.UfwService") as mock_ufw_service:
+        mock_ufw_service.return_value = mock_ufw_instance
+
+        result = run_non_interactive_commands(args)
+
+    assert result is False
+    mock_ufw_instance.install.assert_called_once()

@@ -1,5 +1,5 @@
 import subprocess
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, mock_open, patch
 
 from app.services.traffic_guard import TrafficGuardService
 
@@ -173,10 +173,10 @@ class TestTrafficGuardService:
 
     @patch("app.services.traffic_guard.TrafficGuardService._check_root")
     @patch("app.services.traffic_guard.TrafficGuardService._is_trafficguard_installed")
-    @patch("app.services.traffic_guard.update_os")
     @patch("app.services.traffic_guard.TrafficGuardService._setup_firewall_safety")
     @patch("os.chmod")
     @patch("pathlib.Path.exists")
+    @patch("builtins.open", new_callable=mock_open, read_data="echo install\n/opt/trafficguard-manager.sh monitor\n")
     @patch("os.remove")
     @patch("app.services.traffic_guard.TrafficGuardService._wait_for_service_status")
     @patch("app.services.traffic_guard.run")
@@ -187,17 +187,16 @@ class TestTrafficGuardService:
         mock_run,
         mock_wait_status,
         mock_remove,
+        mock_open_file,
         mock_path_exists,
         mock_chmod,
         mock_setup_firewall,
-        mock_update_os,
         mock_is_installed,
         mock_check_root,
     ):
         """Тест установки TrafficGuard при первом запуске"""
         mock_check_root.return_value = True
         mock_is_installed.return_value = False
-        mock_update_os.return_value = None
         mock_setup_firewall.return_value = True
         mock_wait_status.return_value = True
         mock_path_exists.side_effect = [True, True, False]  # For different exists checks
@@ -225,11 +224,8 @@ class TestTrafficGuardService:
         # Since we're testing a complex flow, it's sufficient to check that key methods were called
         mock_check_root.assert_called_once()
         mock_is_installed.assert_called_once()
-        mock_update_os.assert_called_once()
-
     @patch("app.services.traffic_guard.TrafficGuardService._check_root")
     @patch("app.services.traffic_guard.TrafficGuardService._is_trafficguard_installed")
-    @patch("app.services.traffic_guard.update_os")
     @patch("app.services.traffic_guard.TrafficGuardService._setup_firewall_safety")
     @patch("os.chmod")
     @patch("pathlib.Path.exists")
@@ -246,14 +242,12 @@ class TestTrafficGuardService:
         mock_path_exists,
         mock_chmod,
         mock_setup_firewall,
-        mock_update_os,
         mock_is_installed,
         mock_check_root,
     ):
         """Тест установки TrafficGuard когда установка firewall завершается неудачей"""
         mock_check_root.return_value = True
         mock_is_installed.return_value = False
-        mock_update_os.return_value = None
         mock_setup_firewall.return_value = False  # Firewall setup fails
         mock_wait_status.return_value = True
         mock_path_exists.side_effect = [True, True, False]
@@ -331,98 +325,144 @@ class TestTrafficGuardService:
 
     # Пропускаем этот тест, так как сложно мокировать все вызовы в методе удаления
 
-    def test_setup_firewall_safety_with_ufw_installed(self):
+    @patch("app.services.traffic_guard.run")
+    def test_setup_firewall_safety_with_ufw_installed(self, mock_run):
         """Тест установки защиты брандмауэра когда UFW уже установлен"""
-        with patch("pathlib.Path.exists", return_value=True):  # UFW exists
+        mock_run.side_effect = [
+            Mock(returncode=0),
+            Mock(returncode=0, stdout="Status: active\n"),
+        ]
+
+        with patch("app.services.traffic_guard.UfwService") as mock_ufw_cls:
+            mock_ufw = mock_ufw_cls.return_value
+            mock_ufw.ensure_safe_baseline.return_value = True
+
             result = self.service._setup_firewall_safety()
 
-            assert result is True
+        assert result is True
+        mock_ufw.ensure_safe_baseline.assert_called_once_with()
 
     @patch("app.services.traffic_guard.run")
     @patch("pathlib.Path.exists")
     def test_setup_firewall_safety_with_ufw_not_installed(self, mock_path_exists, mock_run):
         """Тест установки защиты брандмауэра когда UFW не установлен"""
-        # UFW not installed
-        mock_run.return_value = Mock(returncode=1)
+        mock_run.side_effect = [Mock(returncode=1), Mock(returncode=0, stdout="Status: active\n"), Mock(returncode=0, stdout="22/tcp\n")]
 
-        result = self.service._setup_firewall_safety()
+        with patch("app.services.traffic_guard.UfwService") as mock_ufw_cls:
+            mock_ufw = mock_ufw_cls.return_value
+            mock_ufw.install.return_value = True
 
-        # Should return True even if UFW not installed
+            result = self.service._setup_firewall_safety()
+
         assert result is True
-        mock_run.assert_called_with(["which", "ufw"], check=False)
+        mock_ufw.install.assert_called_once_with()
 
     @patch("app.services.traffic_guard.run")
     @patch("pathlib.Path.exists")
     def test_setup_firewall_safety_exception_handling(self, mock_path_exists, mock_run):
         """Тест обработки исключений в методе _setup_firewall_safety"""
-        # Mock the which command to succeed, but have the subsequent command fail
-        mock_run.side_effect = [Mock(returncode=0)]  # which ufw succeeds
-        with patch("subprocess.run") as mock_subprocess_run:
-            mock_subprocess_run.side_effect = Exception("Test exception")
+        mock_run.side_effect = Exception("Test exception")
 
-            # The method should catch the exception internally and still return True for the initial steps
-            try:
-                result = self.service._setup_firewall_safety()
-            except Exception:
-                # If exception propagates despite our expectations, return False for this test
-                result = False
+        result = self.service._setup_firewall_safety()
 
-        # Should handle the exception gracefully
-        assert result is not None
+        assert result is False
 
     @patch("app.services.traffic_guard.run")
     @patch("pathlib.Path.exists")
     def test_setup_firewall_safety_with_ufw_inactive(self, mock_path_exists, mock_run):
         """Тест установки защиты брандмауэра когда UFW установлен но выключен"""
-        # UFW is installed and inactive
         mock_run.side_effect = [
-            Mock(returncode=0),  # which ufw - success
-            Mock(returncode=0, stdout="Status: inactive\n"),  # ufw status
-            Mock(returncode=0),  # ufw allow ssh
+            Mock(returncode=0),
+            Mock(returncode=0, stdout="Status: inactive\n"),
         ]
 
-        with patch("subprocess.run") as mock_subprocess_run:
-            mock_subprocess_run.return_value = Mock(returncode=0)
+        with patch("app.services.traffic_guard.UfwService") as mock_ufw_cls:
+            mock_ufw = mock_ufw_cls.return_value
+            mock_ufw.enable_with_ssh_only.return_value = True
 
             result = self.service._setup_firewall_safety()
 
-            assert result is True
-            # Verify sequence of calls
-            assert mock_run.call_count >= 3  # which, status, allow ssh
+        assert result is True
+        assert mock_run.call_count == 2
+        mock_ufw.enable_with_ssh_only.assert_called_once_with()
+
+    @patch("app.services.traffic_guard.run")
+    @patch("pathlib.Path.exists")
+    def test_setup_firewall_safety_returns_false_when_ufw_enable_fails(
+        self, mock_path_exists, mock_run
+    ):
+        """Тест провала подготовки фаервола если UFW не удалось включить"""
+        mock_run.side_effect = [
+            Mock(returncode=0),
+            Mock(returncode=0, stdout="Status: inactive\n"),
+        ]
+
+        with patch("app.services.traffic_guard.UfwService") as mock_ufw_cls:
+            mock_ufw = mock_ufw_cls.return_value
+            mock_ufw.enable_with_ssh_only.return_value = False
+
+            result = self.service._setup_firewall_safety()
+
+        assert result is False
+        mock_ufw.enable_with_ssh_only.assert_called_once_with()
 
     @patch("app.services.traffic_guard.run")
     @patch("pathlib.Path.exists")
     def test_setup_firewall_safety_with_ufw_active_no_ssh_rule(self, mock_path_exists, mock_run):
         """Тест установки защиты брандмауэра когда UFW активен но нет SSH правила"""
-        # UFW is installed and active, but no SSH rule
         mock_run.side_effect = [
-            Mock(returncode=0),  # which ufw - success
-            Mock(returncode=0, stdout="Status: active\n"),  # ufw status
-            Mock(returncode=0, stdout="Rules:\n"),  # ufw show added - no SSH rule
-            Mock(returncode=0),  # ufw allow ssh
+            Mock(returncode=0),
+            Mock(returncode=0, stdout="Status: active\n"),
         ]
 
-        result = self.service._setup_firewall_safety()
+        with patch("app.services.traffic_guard.UfwService") as mock_ufw_cls:
+            mock_ufw = mock_ufw_cls.return_value
+            mock_ufw.ensure_safe_baseline.return_value = True
+
+            result = self.service._setup_firewall_safety()
 
         assert result is True
-        assert mock_run.call_count >= 4  # which, status, show added, allow ssh
+        assert mock_run.call_count == 2
+        mock_ufw.ensure_safe_baseline.assert_called_once_with()
 
     @patch("app.services.traffic_guard.run")
     @patch("pathlib.Path.exists")
     def test_setup_firewall_safety_with_ufw_active_with_ssh_rule(self, mock_path_exists, mock_run):
         """Тест установки защиты брандмауэра когда UFW активен и есть SSH правило"""
-        # UFW is installed and active, with SSH rule
         mock_run.side_effect = [
-            Mock(returncode=0),  # which ufw - success
-            Mock(returncode=0, stdout="Status: active\n"),  # ufw status
-            Mock(returncode=0, stdout="Rules:\n22 (SSH)\n"),  # ufw show added - has SSH rule
+            Mock(returncode=0),
+            Mock(returncode=0, stdout="Status: active\n"),
         ]
 
-        result = self.service._setup_firewall_safety()
+        with patch("app.services.traffic_guard.UfwService") as mock_ufw_cls:
+            mock_ufw = mock_ufw_cls.return_value
+            mock_ufw.ensure_safe_baseline.return_value = True
+
+            result = self.service._setup_firewall_safety()
 
         assert result is True
-        # Should be called 3 times: which, status, show added
-        assert mock_run.call_count == 3
+        assert mock_run.call_count == 2
+        mock_ufw.ensure_safe_baseline.assert_called_once_with()
+
+    @patch("app.services.traffic_guard.run")
+    @patch("pathlib.Path.exists")
+    def test_setup_firewall_safety_with_active_ufw_and_bad_baseline(
+        self, mock_path_exists, mock_run
+    ):
+        """Тест провала если активный UFW не проходит проверку базовой конфигурации"""
+        mock_run.side_effect = [
+            Mock(returncode=0),
+            Mock(returncode=0, stdout="Status: active\n"),
+        ]
+
+        with patch("app.services.traffic_guard.UfwService") as mock_ufw_cls:
+            mock_ufw = mock_ufw_cls.return_value
+            mock_ufw.ensure_safe_baseline.return_value = False
+
+            result = self.service._setup_firewall_safety()
+
+        assert result is False
+        mock_ufw.ensure_safe_baseline.assert_called_once_with()
 
     def test_launch_monitor_with_manager_exists(self):
         """Тест запуска монитора когда менеджер существует"""
@@ -505,10 +545,8 @@ class TestTrafficGuardService:
     @patch("app.services.traffic_guard.os.chmod")
     @patch("app.services.traffic_guard.TrafficGuardService._wait_for_service_status")
     @patch("app.services.traffic_guard.run")
-    @patch("app.services.traffic_guard.update_os")
     def test_install_trafficguard_file_not_found_error(
         self,
-        mock_update_os,
         mock_run,
         mock_wait_status,
         mock_chmod,
@@ -521,7 +559,6 @@ class TestTrafficGuardService:
         """Тест установки TrafficGuard с ошибкой файл не найден"""
         mock_check_root.return_value = True
         mock_is_installed.return_value = False
-        mock_update_os.return_value = None
         mock_wait_status.return_value = True
 
         # Create a Path mock object with exists attribute

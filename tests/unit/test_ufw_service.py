@@ -7,6 +7,32 @@ class TestUfwService:
     def setup_method(self):
         self.service = UfwService()
 
+    def test_ensure_default_policies_returns_false_on_command_failure(self):
+        with patch("app.services.ufw.run") as mock_run:
+            mock_run.side_effect = [
+                Mock(returncode=1, stdout=""),
+                Mock(returncode=0, stdout=""),
+            ]
+
+            result = self.service._ensure_default_policies()
+
+        assert result is False
+
+    def test_ensure_default_policies_returns_false_on_exception(self):
+        with patch("app.services.ufw.run", side_effect=RuntimeError("boom")):
+            assert self.service._ensure_default_policies() is False
+
+    def test_ensure_safe_baseline_returns_false_when_default_policies_fail(self):
+        with patch.object(self.service, "_ensure_default_policies", return_value=False):
+            assert self.service.ensure_safe_baseline() is False
+
+    def test_ensure_safe_baseline_returns_false_when_ssh_rule_fails(self):
+        with (
+            patch.object(self.service, "_ensure_default_policies", return_value=True),
+            patch.object(self.service, "_ensure_ssh_allowed", return_value=False),
+        ):
+            assert self.service.ensure_safe_baseline() is False
+
     @patch("app.services.ufw.run")
     def test_is_installed_true(self, mock_run):
         """Test that is_installed returns True when UFW is available."""
@@ -39,16 +65,16 @@ class TestUfwService:
         """Test that install succeeds when UFW is already installed."""
         # Mock is_installed to return True
         with patch.object(self.service, "is_installed", return_value=True):
-            with patch.object(self.service, "_ensure_ssh_allowed") as mock_ensure_ssh:
+            with patch.object(self.service, "ensure_safe_baseline") as mock_safe_baseline:
+                mock_safe_baseline.return_value = True
                 result = self.service.install()
 
                 assert result is True
-                mock_ensure_ssh.assert_called_once()
+                mock_safe_baseline.assert_called_once()
 
     @patch("os.geteuid", return_value=0)  # Root privileges
-    @patch("app.utils.update_utils.update_os")
     @patch("app.services.ufw.run")
-    def test_install_success(self, mock_run, mock_update_os, mock_geteuid):
+    def test_install_success(self, mock_run, mock_geteuid):
         """Test successful UFW installation."""
 
         def side_effect(cmd, check=True, **kwargs):
@@ -224,6 +250,18 @@ class TestUfwService:
             result = self.service.reset()
             assert result is True  # Should return True as nothing to reset
 
+    @patch("builtins.input", return_value="n")
+    def test_disable_cancelled_by_user(self, mock_input):
+        assert self.service.disable(confirm=True) is False
+
+    @patch("builtins.input", return_value="n")
+    def test_reset_cancelled_by_user(self, mock_input):
+        assert self.service.reset(confirm=True) is False
+
+    @patch("builtins.input", return_value="n")
+    def test_uninstall_cancelled_by_user(self, mock_input):
+        assert self.service.uninstall(confirm=True) is False
+
     @patch("app.services.ufw.run")
     def test_uninstall_when_not_installed(self, mock_run):
         """Test uninstall when UFW is not installed."""
@@ -231,6 +269,10 @@ class TestUfwService:
         with patch.object(self.service, "is_installed", return_value=False):
             result = self.service.uninstall()
             assert result is True  # Should return True as nothing to uninstall
+
+    def test_open_common_ports_returns_false_when_all_ports_fail(self):
+        with patch("app.services.ufw.run", return_value=Mock(returncode=1, stdout="")):
+            assert self.service.open_common_ports() is False
 
     @patch("app.services.ufw.os.geteuid", return_value=0)  # Root privileges
     @patch("app.services.ufw.run")
@@ -387,14 +429,40 @@ class TestUfwService:
         assert mock_run.called
 
     @patch("app.services.ufw.run")
+    def test_ensure_ssh_allowed_returns_false_when_both_ssh_variants_fail(self, mock_run):
+        def side_effect(cmd, check=True, **kwargs):
+            if cmd == ["ufw", "show", "added"]:
+                return Mock(returncode=0, stdout="No rules found")
+            if cmd in (["ufw", "allow", "ssh"], ["ufw", "allow", "22"]):
+                return Mock(returncode=1, stdout="")
+            return Mock(returncode=0, stdout="")
+
+        mock_run.side_effect = side_effect
+
+        assert self.service._ensure_ssh_allowed() is False
+
+    @patch("app.services.ufw.run")
+    def test_get_status_returns_unknown_on_non_zero_exit(self, mock_run):
+        mock_run.return_value = Mock(returncode=1, stdout="")
+        assert self.service.get_status() == "unknown"
+
+    @patch("app.services.ufw.run")
     def test_enable_with_ssh_only_success(self, mock_run):
         """Test enabling UFW with SSH rule."""
 
+        status_calls = 0
+
         def side_effect(cmd, check=True, **kwargs):
+            nonlocal status_calls
             if isinstance(cmd, list) and len(cmd) >= 2 and cmd[0] == "ufw":
                 if cmd[1] == "status":
                     result = Mock()
-                    result.stdout = "Status: inactive\nSomething else\n"
+                    status_calls += 1
+                    result.stdout = (
+                        "Status: inactive\nSomething else\n"
+                        if status_calls == 1
+                        else "Status: active\nSomething else\n"
+                    )
                     result.returncode = 0
                     return result
                 elif cmd[1] == "--force" and cmd[2] == "enable":
@@ -410,6 +478,11 @@ class TestUfwService:
                     result = Mock()
                     result.returncode = 0
                     return result
+                elif cmd[0] == "ufw" and cmd[1] == "default":
+                    result = Mock()
+                    result.returncode = 0
+                    result.stdout = ""
+                    return result
             elif isinstance(cmd, list) and cmd[0] == "which" and cmd[1] == "ufw":
                 result = Mock()
                 result.returncode = 0
@@ -422,10 +495,97 @@ class TestUfwService:
 
         mock_run.side_effect = side_effect
 
-        # Mock is_installed to return True to skip installation step
         with patch.object(self.service, "is_installed", return_value=True):
             result = self.service.enable_with_ssh_only()
             assert result is True
+
+    @patch("app.services.ufw.run")
+    def test_enable_with_ssh_only_succeeds_when_enable_returns_nonzero_but_ufw_becomes_active(
+        self, mock_run
+    ):
+        """Test enabling UFW tolerates false-negative return codes when final status is active."""
+
+        status_calls = 0
+
+        def side_effect(cmd, check=True, **kwargs):
+            nonlocal status_calls
+            if isinstance(cmd, list) and len(cmd) >= 2 and cmd[0] == "ufw":
+                if cmd[1] == "status":
+                    status_calls += 1
+                    result = Mock()
+                    result.stdout = (
+                        "Status: inactive\n" if status_calls == 1 else "Status: active\n"
+                    )
+                    result.returncode = 0
+                    return result
+                elif cmd[1] == "--force" and cmd[2] == "enable":
+                    result = Mock()
+                    result.returncode = 1
+                    result.stdout = ""
+                    return result
+                elif cmd[1] == "show":
+                    result = Mock()
+                    result.stdout = "22/tcp"
+                    result.returncode = 0
+                    return result
+            elif isinstance(cmd, list) and cmd[0] == "which" and cmd[1] == "ufw":
+                result = Mock()
+                result.returncode = 0
+                return result
+
+            result = Mock()
+            result.returncode = 0
+            result.stdout = ""
+            return result
+
+        mock_run.side_effect = side_effect
+
+        result = self.service.enable_with_ssh_only()
+
+        assert result is True
+
+    @patch("app.services.ufw.run")
+    def test_enable_with_ssh_only_applies_safe_default_policies_before_enable(self, mock_run):
+        """Test enabling UFW restores deny-incoming/allow-outgoing defaults before enable."""
+
+        def side_effect(cmd, check=True, **kwargs):
+            result = Mock()
+
+            if cmd == ["which", "ufw"]:
+                result.returncode = 0
+            elif cmd == ["ufw", "status"]:
+                if not hasattr(side_effect, "status_calls"):
+                    side_effect.status_calls = 0
+                side_effect.status_calls += 1
+                result.returncode = 0
+                result.stdout = (
+                    "Status: inactive\n" if side_effect.status_calls == 1 else "Status: active\n"
+                )
+            elif cmd == ["ufw", "show", "added"]:
+                result.returncode = 0
+                result.stdout = "22/tcp\n"
+            elif cmd == ["ufw", "default", "deny", "incoming"]:
+                result.returncode = 0
+                result.stdout = ""
+            elif cmd == ["ufw", "default", "allow", "outgoing"]:
+                result.returncode = 0
+                result.stdout = ""
+            elif cmd == ["ufw", "--force", "enable"]:
+                result.returncode = 0
+                result.stdout = ""
+            else:
+                result.returncode = 0
+                result.stdout = ""
+
+            return result
+
+        mock_run.side_effect = side_effect
+
+        result = self.service.enable_with_ssh_only()
+
+        assert result is True
+        assert ["ufw", "default", "deny", "incoming"] in [call.args[0] for call in mock_run.call_args_list]
+        assert ["ufw", "default", "allow", "outgoing"] in [call.args[0] for call in mock_run.call_args_list]
 
     @patch("app.services.ufw.run")
     def test_enable_with_ssh_only_already_active(self, mock_run):
@@ -450,7 +610,12 @@ class TestUfwService:
         with patch.object(self.service, "is_installed", return_value=True):
             result = self.service.enable_with_ssh_only()
             assert result is True
-            # Should return early without trying to enable
+            assert ["ufw", "default", "deny", "incoming"] in [
+                call.args[0] for call in mock_run.call_args_list
+            ]
+            assert ["ufw", "default", "allow", "outgoing"] in [
+                call.args[0] for call in mock_run.call_args_list
+            ]
 
     @patch("app.services.ufw.run")
     def test_open_common_ports_success(self, mock_run):

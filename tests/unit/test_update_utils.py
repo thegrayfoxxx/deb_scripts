@@ -98,7 +98,7 @@ class TestUpdateUtils:
 
             # Проверяем, что была записана ошибка
             mock_logger.error.assert_called_with(
-                "📁 Команда не найдена (проверьте наличие apt): {e}"
+                "📁 Команда не найдена (проверьте наличие apt): apt command not found"
             )
 
     def test_update_os_permission_error(self):
@@ -113,7 +113,9 @@ class TestUpdateUtils:
             update_os()
 
             # Проверяем, что была записана ошибка
-            mock_logger.error.assert_called_with("🔐 Ошибка прав доступа (требуется root?): {e}")
+            mock_logger.error.assert_called_with(
+                "🔐 Ошибка прав доступа (требуется root?): Permission denied"
+            )
 
     def test_update_os_general_exception(self):
         """Тест обработки общей ошибки"""

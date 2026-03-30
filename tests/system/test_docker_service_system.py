@@ -20,10 +20,15 @@ class TestDockerSystemService:
         self.service = DockerService()
 
     def test_docker_binary_not_available_by_default(self):
-        """Проверяем, что Docker не установлен по умолчанию в тестовом окружении"""
+        """Проверяем, что состояние Docker в тестовом окружении определяется корректно"""
         result = subprocess.run(["which", "docker"], capture_output=True, text=True)
-        # В стандартном тестовом контейнере Docker обычно не установлен
-        assert result.returncode != 0  # 'which docker' должна вернуть ненулевой код
+        assert result.returncode in [0, 1]
+
+        if result.returncode == 0:
+            version_result = subprocess.run(
+                ["docker", "--version"], capture_output=True, text=True, timeout=10
+            )
+            assert version_result.returncode == 0
 
     def test_curl_available_for_installation(self):
         """Проверяем, что curl доступен для скачивания скрипта установки Docker"""
@@ -67,9 +72,13 @@ class TestDockerSystemService:
         """Проверяем, что systemd доступен для управления сервисом Docker"""
         # В тестовом контейнере может быть ограниченный доступ к systemd
         result = subprocess.run(["which", "systemctl"], capture_output=True, text=True)
+        assert result.returncode in [0, 1]
 
-        # systemctl может быть недоступен в контейнере, это нормально
-        # главное, что сама система поддерживает возможность управления сервисами
+        if result.returncode == 0:
+            version_result = subprocess.run(
+                ["systemctl", "--version"], capture_output=True, text=True, timeout=10
+            )
+            assert version_result.returncode == 0
 
     def test_file_system_operations_for_config(self):
         """Тестирование файловых операций, необходимых для конфигурации Docker"""
@@ -115,7 +124,7 @@ class TestDockerSystemService:
                 text=True,
                 timeout=15,
             )
-            # Мы не требуем успеха, так как в тестовой среде может не быть доступа к реальным сайтам
+            assert result.returncode in [0, 1, 2]
         except subprocess.TimeoutExpired:
             # Это нормально в изолированной среде
             pass

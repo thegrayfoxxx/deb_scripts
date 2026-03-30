@@ -38,15 +38,11 @@ class TestLogger:
         mock_stream_handler.return_value = mock_stream_handler_instance
         mock_file_handler.return_value = mock_file_handler_instance
 
-        # Create logger first time
         logger1 = get_logger("test_single_creation")
-        # Create logger second time with same name
         logger2 = get_logger("test_single_creation")
 
-        # Should reuse the same logger without adding handlers again
         assert logger1.handlers == logger2.handlers
-        # Check that handlers were only added once
-        assert len(logger1.handlers) == 2  # Console and file handlers
+        assert len(logger1.handlers) == 2
 
     @patch("app.utils.logger.app_args")
     @patch("pathlib.Path.mkdir")
@@ -75,4 +71,21 @@ class TestLogger:
 
         logger = get_logger("test_custom_level", level=logging.WARNING)
         assert logger.name == "test_custom_level"
-        assert logger.level == logging.WARNING  # In prod mode, should keep the custom level
+        assert logger.level == logging.WARNING
+
+    @patch("app.utils.logger.app_args")
+    @patch("pathlib.Path.mkdir")
+    @patch("logging.FileHandler", side_effect=PermissionError("denied"))
+    @patch("logging.StreamHandler")
+    def test_get_logger_skips_file_handler_on_permission_error(
+        self, mock_stream_handler, mock_file_handler, mock_mkdir, mock_app_args
+    ):
+        """Тест что логгер не падает, если файл логов недоступен."""
+        mock_app_args.mode = "prod"
+        mock_stream_handler_instance = Mock()
+        mock_stream_handler.return_value = mock_stream_handler_instance
+
+        logger = get_logger("test_file_handler_permission_error")
+
+        assert logger.name == "test_file_handler_permission_error"
+        assert len(logger.handlers) == 1

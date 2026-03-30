@@ -1,3 +1,4 @@
+import subprocess
 from unittest.mock import Mock, patch
 
 from app.services.docker import DockerService
@@ -6,6 +7,24 @@ from app.services.docker import DockerService
 class TestDockerService:
     def setup_method(self):
         self.service = DockerService()
+
+    def test_install_wrapper_delegates_to_install_docker(self):
+        with patch.object(self.service, "install_docker", return_value=True) as mock_install:
+            result = self.service.install()
+
+        assert result is True
+        mock_install.assert_called_once_with()
+
+    def test_uninstall_wrapper_delegates_to_uninstall_docker(self):
+        with patch.object(self.service, "uninstall_docker", return_value=True) as mock_uninstall:
+            result = self.service.uninstall(confirm=True)
+
+        assert result is True
+        mock_uninstall.assert_called_once_with(confirm=True)
+
+    def test_get_status_not_installed(self):
+        with patch.object(self.service, "_get_docker_version", return_value=None):
+            assert self.service.get_status() == "Docker: not installed"
 
     def test_get_docker_version_success(self, mock_subprocess_result):
         """Тест успешной проверки наличия docker"""
@@ -44,16 +63,12 @@ class TestDockerService:
             returncode=0, stdout="Docker version 24.0.5, build ced0996"
         )
 
-        with (
-            patch("app.services.docker.update_os") as mock_update_os,
-            patch("app.services.docker.run") as mock_run,
-        ):
+        with patch("app.services.docker.run") as mock_run:
             mock_run.return_value = version_mock
 
             self.service.install_docker()
 
             mock_run.assert_called_once_with(["docker", "--version"], check=False)
-            mock_update_os.assert_not_called()
 
     def test_install_docker_first_time(self, mock_subprocess_result):
         """Тест установки docker при первом запуске"""
@@ -77,10 +92,7 @@ class TestDockerService:
             ),  # final check
         ]
 
-        with (
-            patch("app.services.docker.update_os") as mock_update_os,
-            patch("app.services.docker.run") as mock_run,
-        ):
+        with patch("app.services.docker.run") as mock_run:
             mock_run.side_effect = side_effects
 
             self.service.install_docker()
@@ -88,6 +100,46 @@ class TestDockerService:
             # Verify that the main checks were called
             assert mock_run.call_count >= 2  # At least check version and install curl
             # The important thing is that it tries to install when not found
+
+    def test_install_docker_download_failure(self):
+        with patch("app.services.docker.run") as mock_run:
+            mock_run.side_effect = [
+                Mock(returncode=1, stdout=""),
+                Mock(returncode=0, stdout=""),
+                Mock(returncode=1, stdout=""),
+            ]
+
+            result = self.service.install_docker()
+
+        assert result is False
+
+    def test_install_docker_script_failure(self):
+        with patch("app.services.docker.run") as mock_run:
+            mock_run.side_effect = [
+                Mock(returncode=1, stdout=""),
+                Mock(returncode=0, stdout=""),
+                Mock(returncode=0, stdout=""),
+                Mock(returncode=1, stdout=""),
+            ]
+
+            result = self.service.install_docker()
+
+        assert result is False
+
+    def test_install_docker_returns_false_when_final_check_fails(self):
+        with patch("app.services.docker.run") as mock_run:
+            mock_run.side_effect = [
+                Mock(returncode=1, stdout=""),
+                Mock(returncode=1, stdout=""),
+                Mock(returncode=0, stdout=""),
+                Mock(returncode=0, stdout=""),
+                Mock(returncode=0, stdout=""),
+                Mock(returncode=1, stdout=""),
+            ]
+
+            result = self.service.install_docker()
+
+        assert result is False
 
     def test_uninstall_docker_not_installed(self, mock_subprocess_result):
         """Тест удаления docker когда он не установлен"""
@@ -104,6 +156,11 @@ class TestDockerService:
             mock_run.assert_any_call(
                 ["rm", "-f", "/etc/apt/sources.list.d/docker.list"], check=False
             )
+
+    @patch("builtins.input", return_value="n")
+    def test_uninstall_docker_cancelled_by_user(self, mock_input):
+        result = self.service.uninstall_docker(confirm=True)
+        assert result is True
 
     def test_uninstall_docker_when_packages_exist(self, mock_subprocess_result):
         """Тест удаления docker когда пакеты установлены"""
@@ -141,6 +198,52 @@ class TestDockerService:
             mock_run.assert_any_call(["rm", "-rf", "/var/lib/docker"], check=False)
             mock_run.assert_any_call(["rm", "-rf", "/var/lib/containerd"], check=False)
 
+    def test_uninstall_docker_returns_false_when_docker_still_present(self):
+        with patch("app.services.docker.run") as mock_run:
+            mock_run.side_effect = [
+                Mock(returncode=0, stdout="Docker version 24.0.5, build ced0996"),
+                Mock(returncode=0, stdout=""),
+                Mock(returncode=0, stdout=""),
+                Mock(returncode=0, stdout=""),
+                Mock(returncode=0, stdout="Docker version 24.0.5, build ced0996"),
+            ]
+
+            result = self.service.uninstall_docker()
+
+        assert result is False
+
+    @patch("app.services.docker.run")
+    def test_uninstall_docker_handles_called_process_error_code_100(self, mock_run):
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout="Docker version 24.0.5, build ced0996"),
+            subprocess.CalledProcessError(returncode=100, cmd=["apt", "purge"], stderr=""),
+            Mock(returncode=0, stdout=""),
+            Mock(returncode=0, stdout=""),
+            Mock(returncode=0, stdout=""),
+            Mock(returncode=0, stdout=""),
+            Mock(returncode=1, stdout=""),
+        ]
+
+        result = self.service.uninstall_docker()
+
+        assert result is True
+
+    @patch("app.services.docker.run")
+    def test_uninstall_docker_handles_called_process_error_warning_branch(self, mock_run):
+        mock_run.side_effect = [
+            Mock(returncode=0, stdout="Docker version 24.0.5, build ced0996"),
+            subprocess.CalledProcessError(returncode=42, cmd=["apt", "purge"], stderr="warning"),
+            Mock(returncode=0, stdout=""),
+            Mock(returncode=0, stdout=""),
+            Mock(returncode=0, stdout=""),
+            Mock(returncode=0, stdout=""),
+            Mock(returncode=1, stdout=""),
+        ]
+
+        result = self.service.uninstall_docker()
+
+        assert result is True
+
     def test_get_docker_version_general_exception(self):
         """Тест получения версии docker с общей ошибкой в обработке stdout"""
         with patch("app.services.docker.run") as mock_run:
@@ -157,9 +260,8 @@ class TestDockerService:
             # Should return None when exception occurs during processing
             assert result is None
 
-    @patch("app.services.docker.update_os")
     @patch("app.services.docker.run")
-    def test_install_docker_file_not_found_error(self, mock_run, mock_update_os):
+    def test_install_docker_file_not_found_error(self, mock_run):
         """Тест установки docker с ошибкой FileNotFoundError"""
         mock_run.side_effect = FileNotFoundError("Command not found")
 
@@ -169,9 +271,8 @@ class TestDockerService:
             # Should log the error
             mock_logger.error.assert_called()
 
-    @patch("app.services.docker.update_os")
     @patch("app.services.docker.run")
-    def test_install_docker_permission_error(self, mock_run, mock_update_os):
+    def test_install_docker_permission_error(self, mock_run):
         """Тест установки docker с ошибкой PermissionError"""
         mock_run.side_effect = PermissionError("Permission denied")
 
@@ -181,9 +282,8 @@ class TestDockerService:
             # Should log the error
             mock_logger.error.assert_called()
 
-    @patch("app.services.docker.update_os")
     @patch("app.services.docker.run")
-    def test_install_docker_general_exception(self, mock_run, mock_update_os):
+    def test_install_docker_general_exception(self, mock_run):
         """Тест установки docker с общей ошибкой"""
         mock_run.side_effect = Exception("General error")
 

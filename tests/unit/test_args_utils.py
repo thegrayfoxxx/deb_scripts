@@ -1,30 +1,44 @@
 from unittest.mock import patch
 
-from app.utils.args_utils import get_app_args
+from app.utils import args_utils
 
 
 class TestArgsUtils:
-    def test_get_app_args_with_default_mode(self):
-        """Тест получения аргументов с режимом по умолчанию"""
-        # В режиме тестирования мы должны получить значения по умолчанию
-        args = get_app_args()
-        assert hasattr(args, "mode")
-        assert args.mode in ["dev", "prod"]  # Проверяем, что режим валиден
+    def test_parse_args_uses_defaults(self):
+        with patch("sys.argv", ["script_name"]):
+            parsed = args_utils.parse_args()
 
-    @patch("sys.argv", ["script_name", "--mode", "dev"])
-    def test_get_app_args_dev_mode(self):
-        """Тест получения аргументов с режимом разработки"""
-        # Тестируем в обход обычной логики, т.к. в тестах мы не хотим, чтобы парсер аргументов
-        # был вызван нормально - это уже обрабатывается в логике модуля
-        # Но можно протестировать функцию parse_args если она будет вынесена в отдельный тест
+        assert parsed.mode == "prod"
+        assert parsed.install is None
+        assert parsed.uninstall is None
 
-        # Вместо этого тестируем, что объект имеет нужные атрибуты
-        args = get_app_args()
-        assert hasattr(args, "mode")
+    def test_parse_args_accepts_dev_mode_and_install_codes(self):
+        with patch("sys.argv", ["script_name", "--mode", "dev", "--install", "1", "6"]):
+            parsed = args_utils.parse_args()
 
-    def test_args_object_has_expected_attributes(self):
-        """Тест проверки, что объект аргументов имеет ожидаемые атрибуты"""
-        args = get_app_args()
-        assert hasattr(args, "mode")
-        assert isinstance(args.mode, str)
-        assert args.mode in ["dev", "prod"]
+        assert parsed.mode == "dev"
+        assert parsed.install == ["1", "6"]
+        assert parsed.uninstall is None
+
+    def test_parse_args_accepts_uninstall_codes(self):
+        with patch("sys.argv", ["script_name", "--uninstall", "2", "5"]):
+            parsed = args_utils.parse_args()
+
+        assert parsed.mode == "prod"
+        assert parsed.install is None
+        assert parsed.uninstall == ["2", "5"]
+
+    def test_parse_args_rejects_invalid_mode(self):
+        with patch("sys.argv", ["script_name", "--mode", "broken"]):
+            try:
+                args_utils.parse_args()
+            except SystemExit as exc:
+                assert exc.code == 2
+            else:
+                raise AssertionError("parse_args() should exit on invalid mode")
+
+    def test_get_app_args_in_pytest_context_has_expected_defaults(self):
+        args = args_utils.get_app_args()
+        assert args.mode == "prod"
+        assert args.install is None
+        assert args.uninstall is None
