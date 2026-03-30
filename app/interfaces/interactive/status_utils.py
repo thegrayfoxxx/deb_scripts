@@ -1,6 +1,6 @@
-def status_badge(is_ok: bool, ok_text: str, fail_text: str) -> str:
-    """Форматирует короткий статус с цветным индикатором для интерактивного меню."""
-    return f"{'🟢' if is_ok else '🔴'} {ok_text if is_ok else fail_text}"
+from app.utils.status_text import (
+    status_badge,
+)
 
 
 def menu_action_with_status(action_text: str, is_ok: bool, ok_text: str, fail_text: str) -> str:

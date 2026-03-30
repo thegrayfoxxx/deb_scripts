@@ -1,12 +1,17 @@
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from importlib import import_module
-from typing import Any
+from typing import Any, cast
 
 from app.interfaces.interactive.menu_utils import MenuItem
-from app.interfaces.interactive.status_utils import status_badge
+from app.services.protocols import ActivatableServiceProtocol, ManagedServiceProtocol
+from app.utils.status_text import (
+    activation_status_badge,
+    installation_status_badge,
+)
 
-StatusRendererFactory = Callable[[Any], str]
+ServiceFactory = Callable[[], ManagedServiceProtocol]
+StatusRendererFactory = Callable[[ManagedServiceProtocol], str]
 
 
 @dataclass(frozen=True)
@@ -18,9 +23,10 @@ class ServiceRegistryEntry:
     main_menu_label: str
     service_import: str
     interactive_import: str
+    activatable: bool
     main_menu_status_renderer: StatusRendererFactory
 
-    def service_factory(self) -> Any:
+    def service_factory(self) -> ManagedServiceProtocol:
         return _load_attr(self.service_import)()
 
     def interactive_handler(self) -> None:
@@ -33,34 +39,37 @@ def _load_attr(import_path: str) -> Any:
     return getattr(module, attr_name)
 
 
-def _ufw_status(service: Any) -> str:
+def _ufw_status(service: ManagedServiceProtocol) -> str:
     if not service.is_installed():
-        return "🔴 не установлен"
-    return status_badge(service.is_active(), "включен", "выключен")
+        return installation_status_badge(False)
+    activatable_service = cast(ActivatableServiceProtocol, service)
+    return activation_status_badge(activatable_service.is_active())
 
 
-def _bbr_status(service: Any) -> str:
-    return status_badge(service.is_active(), "включен", "выключен")
-
-
-def _docker_status(service: Any) -> str:
-    return status_badge(service.is_installed(), "установлен", "не установлен")
-
-
-def _fail2ban_status(service: Any) -> str:
+def _bbr_status(service: ManagedServiceProtocol) -> str:
     if not service.is_installed():
-        return "🔴 не установлен"
-    return status_badge(service.is_active(), "активен", "не активен")
+        return installation_status_badge(False)
+    activatable_service = cast(ActivatableServiceProtocol, service)
+    return activation_status_badge(activatable_service.is_active())
 
 
-def _traffic_guard_status(service: Any) -> str:
+def _docker_status(service: ManagedServiceProtocol) -> str:
+    return installation_status_badge(service.is_installed())
+
+
+def _fail2ban_status(service: ManagedServiceProtocol) -> str:
     if not service.is_installed():
-        return "🔴 не установлен"
-    return status_badge(service.is_active(), "активен", "не активен")
+        return installation_status_badge(False)
+    activatable_service = cast(ActivatableServiceProtocol, service)
+    return activation_status_badge(activatable_service.is_active())
 
 
-def _uv_status(service: Any) -> str:
-    return status_badge(service.is_installed(), "установлен", "не установлен")
+def _traffic_guard_status(service: ManagedServiceProtocol) -> str:
+    return installation_status_badge(service.is_installed())
+
+
+def _uv_status(service: ManagedServiceProtocol) -> str:
+    return installation_status_badge(service.is_installed())
 
 
 SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
@@ -72,6 +81,7 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         main_menu_label="1 - 🔥 UFW - uncomplicated firewall (межсетевой экран)",
         service_import="app.services.ufw.UfwService",
         interactive_import="app.interfaces.interactive.ufw.interactive_run",
+        activatable=True,
         main_menu_status_renderer=_ufw_status,
     ),
     ServiceRegistryEntry(
@@ -82,6 +92,7 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         main_menu_label="2 - 🌐 BBR (TCP Congestion Control) - ускорение сети",
         service_import="app.services.bbr.BBRService",
         interactive_import="app.interfaces.interactive.bbr.interactive_run",
+        activatable=True,
         main_menu_status_renderer=_bbr_status,
     ),
     ServiceRegistryEntry(
@@ -92,6 +103,7 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         main_menu_label="3 - 🐳 Docker - установка контейнеризации",
         service_import="app.services.docker.DockerService",
         interactive_import="app.interfaces.interactive.docker.interactive_run",
+        activatable=False,
         main_menu_status_renderer=_docker_status,
     ),
     ServiceRegistryEntry(
@@ -102,6 +114,7 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         main_menu_label="4 - 🛡️ Fail2Ban - защита от атак",
         service_import="app.services.fail2ban.Fail2BanService",
         interactive_import="app.interfaces.interactive.fail2ban.interactive_run",
+        activatable=True,
         main_menu_status_renderer=_fail2ban_status,
     ),
     ServiceRegistryEntry(
@@ -112,6 +125,7 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         main_menu_label="5 - ⚔️ TrafficGuard - комплексная защита",
         service_import="app.services.traffic_guard.TrafficGuardService",
         interactive_import="app.interfaces.interactive.traffic_guard.interactive_run",
+        activatable=False,
         main_menu_status_renderer=_traffic_guard_status,
     ),
     ServiceRegistryEntry(
@@ -122,6 +136,7 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         main_menu_label="6 - 🐍 UV - менеджер пакетов Python",
         service_import="app.services.uv.UVService",
         interactive_import="app.interfaces.interactive.uv.interactive_run",
+        activatable=False,
         main_menu_status_renderer=_uv_status,
     ),
 )
@@ -147,14 +162,13 @@ def build_main_menu_items() -> list[MenuItem]:
 
     for entry in SERVICE_REGISTRY:
         service = entry.service_factory()
+        status = entry.main_menu_status_renderer(service)
         items.append(
             MenuItem(
                 key=entry.code,
                 label=entry.main_menu_label,
                 action=entry.interactive_handler,
-                status_renderer=lambda service=service, entry=entry: (
-                    entry.main_menu_status_renderer(service)
-                ),
+                status_renderer=lambda status=status: status,
             )
         )
 

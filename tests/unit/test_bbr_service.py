@@ -8,39 +8,52 @@ class TestBBRService:
     def setup_method(self):
         self.service = BBRService()
 
-    def test_install_wrapper_delegates_to_enable_bbr(self):
-        with patch.object(self.service, "enable_bbr", return_value=True) as mock_enable:
+    def test_install_prepares_configuration(self):
+        with (
+            patch.object(self.service, "_has_bbr_configuration", side_effect=[False, True]),
+            patch.object(self.service, "_is_bbr_module_loaded", return_value=True),
+            patch.object(self.service, "_write_config_file", return_value=True) as mock_write,
+        ):
             result = self.service.install()
 
         assert result is True
-        mock_enable.assert_called_once_with()
+        assert mock_write.call_count == 2
 
-    def test_uninstall_wrapper_delegates_to_disable_bbr(self):
-        with patch.object(self.service, "disable_bbr", return_value=True) as mock_disable:
+    def test_uninstall_delegates_to_deactivate_before_cleanup(self):
+        with (
+            patch.object(self.service, "deactivate", return_value=True) as mock_deactivate,
+            patch("app.services.bbr.run"),
+            patch("app.services.bbr.Path.exists", return_value=False),
+        ):
             result = self.service.uninstall(confirm=True)
 
         assert result is True
-        mock_disable.assert_called_once_with(confirm=True)
+        mock_deactivate.assert_called_once_with(confirm=True)
 
     def test_get_status_disabled_with_loaded_module(self):
         with (
+            patch.object(self.service, "is_installed", return_value=True),
             patch.object(self.service, "_get_current_congestion_control", return_value="cubic"),
             patch.object(self.service, "_is_bbr_module_loaded", return_value=True),
         ):
             status = self.service.get_status()
 
-        assert "BBR: disabled" in status
-        assert "Current congestion control: cubic" in status
-        assert "Kernel module tcp_bbr: loaded" in status
+        assert "Статус установки: 🟢 установлен" in status
+        assert "Статус активации: 🔴 не активирован" in status
+        assert "Текущий алгоритм перегрузки: cubic" in status
+        assert "Модуль tcp_bbr: загружен" in status
 
     def test_get_status_unknown_when_algorithm_unavailable(self):
         with (
+            patch.object(self.service, "is_installed", return_value=False),
             patch.object(self.service, "_get_current_congestion_control", return_value=None),
             patch.object(self.service, "_is_bbr_module_loaded", return_value=False),
         ):
             status = self.service.get_status()
 
-        assert status == "BBR: unknown\nCurrent congestion control: unavailable"
+        assert "Статус установки: 🔴 не установлен" in status
+        assert "Статус активации: 🔴 не активирован" in status
+        assert "Текущий алгоритм перегрузки: недоступен" in status
 
     def test_get_current_congestion_control_success(self, mock_subprocess_result):
         """Тест успешной проверки текущего алгоритма управления перегрузками"""
@@ -76,7 +89,8 @@ class TestBBRService:
     def test_is_bbr_module_loaded_success(self, mock_subprocess_result):
         """Тест успешной проверки загрузки модуля tcp_bbr"""
         mock_result = mock_subprocess_result(
-            returncode=0, stdout="tcp_bbr 20480 25 - Live 0x0000000000000000\nsome_other_module..."
+            returncode=0,
+            stdout="tcp_bbr 20480 25 - Live 0x0000000000000000\nsome_other_module...",
         )
 
         with patch("app.services.bbr.run") as mock_run:
@@ -130,17 +144,14 @@ class TestBBRService:
 
     def test_enable_bbr_already_enabled(self, mock_subprocess_result):
         """Тест включения BBR когда он уже включен"""
-        mock_result = mock_subprocess_result(returncode=0, stdout="bbr\n")
+        with (
+            patch.object(self.service, "install", return_value=True) as mock_install,
+            patch.object(self.service, "_get_current_congestion_control", return_value="bbr"),
+        ):
+            result = self.service.enable_bbr()
 
-        with patch("app.services.bbr.run") as mock_run:
-            mock_run.return_value = mock_result
-
-            self.service.enable_bbr()
-
-            # Только одна проверка на наличие BBR
-            mock_run.assert_called_once_with(
-                ["sysctl", "-n", "net.ipv4.tcp_congestion_control"], check=False
-            )
+        assert result is True
+        mock_install.assert_called_once_with()
 
     def test_disable_bbr_already_disabled(self, mock_subprocess_result):
         """Тест отключения BBR когда он уже выключен"""
@@ -174,6 +185,7 @@ class TestBBRService:
         ]
 
         with (
+            patch.object(self.service, "_has_bbr_configuration", side_effect=[False, True]),
             patch("app.services.bbr.run") as mock_run,
             patch.object(
                 self.service, "_is_bbr_module_loaded", side_effect=[False, True]
@@ -227,7 +239,9 @@ class TestBBRService:
     def test_enable_bbr_returns_false_when_final_algorithm_is_not_bbr(self):
         with (
             patch.object(
-                self.service, "_get_current_congestion_control", side_effect=["cubic", "reno"]
+                self.service,
+                "_get_current_congestion_control",
+                side_effect=["cubic", "reno"],
             ),
             patch.object(self.service, "_is_bbr_module_loaded", return_value=True),
             patch.object(self.service, "_write_config_file", return_value=True),
@@ -240,8 +254,11 @@ class TestBBRService:
 
     def test_enable_bbr_successful_full_flow(self):
         with (
+            patch.object(self.service, "install", return_value=True),
             patch.object(
-                self.service, "_get_current_congestion_control", side_effect=["cubic", "bbr"]
+                self.service,
+                "_get_current_congestion_control",
+                side_effect=["cubic", "bbr"],
             ),
             patch.object(self.service, "_is_bbr_module_loaded", return_value=True),
             patch.object(self.service, "_write_config_file", return_value=True),
@@ -289,7 +306,9 @@ class TestBBRService:
     def test_disable_bbr_returns_false_when_final_algorithm_is_still_bbr(self):
         with (
             patch.object(
-                self.service, "_get_current_congestion_control", side_effect=["bbr", "bbr"]
+                self.service,
+                "_get_current_congestion_control",
+                side_effect=["bbr", "bbr"],
             ),
             patch.object(self.service, "_write_config_file", return_value=True),
             patch("app.services.bbr.run") as mock_run,
@@ -302,7 +321,9 @@ class TestBBRService:
     def test_disable_bbr_returns_false_when_final_algorithm_is_unknown(self):
         with (
             patch.object(
-                self.service, "_get_current_congestion_control", side_effect=["bbr", None]
+                self.service,
+                "_get_current_congestion_control",
+                side_effect=["bbr", None],
             ),
             patch.object(self.service, "_write_config_file", return_value=True),
             patch("app.services.bbr.run") as mock_run,
@@ -347,9 +368,7 @@ class TestBBRService:
     @patch("app.services.bbr.run")
     @patch("app.services.bbr.BBRService._is_bbr_module_loaded")
     @patch("app.services.bbr.BBRService._write_config_file")
-    def test_enable_bbr_file_not_found_error(
-        self, mock_write_config, mock_is_loaded, mock_run
-    ):
+    def test_enable_bbr_file_not_found_error(self, mock_write_config, mock_is_loaded, mock_run):
         """Тест включения BBR с ошибкой FileNotFoundError"""
         mock_run.side_effect = FileNotFoundError("Command not found")
 
@@ -362,9 +381,7 @@ class TestBBRService:
     @patch("app.services.bbr.run")
     @patch("app.services.bbr.BBRService._is_bbr_module_loaded")
     @patch("app.services.bbr.BBRService._write_config_file")
-    def test_enable_bbr_permission_error(
-        self, mock_write_config, mock_is_loaded, mock_run
-    ):
+    def test_enable_bbr_permission_error(self, mock_write_config, mock_is_loaded, mock_run):
         """Тест включения BBR с ошибкой PermissionError"""
         mock_run.side_effect = PermissionError("Permission denied")
 
@@ -377,11 +394,9 @@ class TestBBRService:
     @patch("app.services.bbr.run")
     @patch("app.services.bbr.BBRService._is_bbr_module_loaded")
     @patch("app.services.bbr.BBRService._write_config_file")
-    def test_enable_bbr_general_exception(
-        self, mock_write_config, mock_is_loaded, mock_run
-    ):
+    def test_enable_bbr_general_exception(self, mock_write_config, mock_is_loaded, mock_run):
         """Тест включения BBR с общей ошибкой"""
-        mock_run.side_effect = Exception("General error")
+        mock_write_config.side_effect = Exception("General error")
 
         with patch("app.services.bbr.logger") as mock_logger:
             self.service.enable_bbr()

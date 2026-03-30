@@ -15,6 +15,7 @@ from app.interfaces.interactive.menu_utils import MenuItem
 def test_bbr_menu_displays_inline_status():
     service = Mock()
     service.is_installed.return_value = True
+    service.is_active.return_value = True
 
     with (
         patch("builtins.input", return_value="0") as mock_input,
@@ -23,7 +24,8 @@ def test_bbr_menu_displays_inline_status():
         bbr.display_bbr_submenu(service)
 
     prompt = mock_input.call_args.args[0]
-    assert "🟢 включен" in prompt
+    assert "🟢 установлен" in prompt
+    assert "🟢 активирован" in prompt
     assert "Показать статус BBR" in prompt
 
 
@@ -101,7 +103,7 @@ def test_ufw_menu_displays_inline_status():
 
     prompt = mock_input.call_args_list[0].args[0]
     assert "🟢 установлен" in prompt
-    assert "🔴 выключен" in prompt
+    assert "🔴 не активирован" in prompt
 
 
 def test_main_menu_displays_inline_statuses():
@@ -131,13 +133,13 @@ def test_main_menu_displays_inline_statuses():
             key="1",
             label="1 - UFW",
             action=Mock(),
-            status_renderer=lambda: "🔴 выключен",
+            status_renderer=lambda: "🔴 не активирован",
         ),
         MenuItem(
             key="2",
             label="2 - BBR",
             action=Mock(),
-            status_renderer=lambda: "🟢 включен",
+            status_renderer=lambda: "🟢 активирован",
         ),
         MenuItem(
             key="3",
@@ -149,13 +151,13 @@ def test_main_menu_displays_inline_statuses():
             key="4",
             label="4 - Fail2Ban",
             action=Mock(),
-            status_renderer=lambda: "🔴 не активен",
+            status_renderer=lambda: "🔴 не активирован",
         ),
         MenuItem(
             key="5",
             label="5 - TrafficGuard",
             action=Mock(),
-            status_renderer=lambda: "🟢 активен",
+            status_renderer=lambda: "🟢 установлен",
         ),
         MenuItem(
             key="6",
@@ -176,11 +178,10 @@ def test_main_menu_displays_inline_statuses():
         run.display_main_menu()
 
     prompt = mock_input.call_args.args[0]
-    assert "🔴 выключен" in prompt
-    assert "🟢 включен" in prompt
+    assert "🔴 не активирован" in prompt
+    assert "🟢 активирован" in prompt
     assert "🔴 не установлен" in prompt
-    assert "🔴 не активен" in prompt
-    assert "🟢 активен" in prompt
+    assert "🔴 не активирован" in prompt
     assert "🟢 установлен" in prompt
 
 
@@ -191,7 +192,7 @@ def test_bbr_interactive_status_action_prints_service_status():
 
     with (
         patch("app.interfaces.interactive.bbr.BBRService", return_value=service),
-        patch("builtins.input", side_effect=["3", "0"]),
+        patch("builtins.input", side_effect=["5", "0"]),
         patch("builtins.print") as mock_print,
     ):
         bbr.interactive_run()
@@ -220,10 +221,8 @@ def test_fail2ban_interactive_status_action_prints_service_status():
     service.get_status.return_value = "Fail2Ban: installed"
 
     with (
-        patch(
-            "app.interfaces.interactive.fail2ban.Fail2BanService", return_value=service
-        ),
-        patch("builtins.input", side_effect=["3", "0"]),
+        patch("app.interfaces.interactive.fail2ban.Fail2BanService", return_value=service),
+        patch("builtins.input", side_effect=["5", "0"]),
         patch("builtins.print") as mock_print,
     ):
         fail2ban.interactive_run()

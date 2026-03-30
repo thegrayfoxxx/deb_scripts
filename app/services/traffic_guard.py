@@ -5,12 +5,25 @@ from pathlib import Path
 
 from app.services.ufw import UfwService
 from app.utils.logger import get_logger
+from app.utils.status_text import format_status_snapshot
 from app.utils.subprocess_utils import run
 
 logger = get_logger(__name__)
 
 
 class TrafficGuardService:
+    INFO_LINES = (
+        "TrafficGuard — комплексная система защиты сервера от сканирования и атак",
+        "Основные возможности:",
+        "• Блокировка подозрительных IP-адресов по множеству критериев",
+        "• Защита от сканирования портов и сервисов",
+        "• Мониторинг сетевой активности в реальном времени",
+        "• Интеграция с системами firewall (iptables, nftables)",
+        "• Автоматическое обновление списков заблокированных адресов",
+        "• Поддержка IPv4 и IPv6",
+        "🔗 GitHub репозиторий: https://github.com/DonMatteoVPN/TrafficGuard-auto",
+    )
+
     def install(self) -> bool:
         """Единая точка входа для установки TrafficGuard."""
         return self.install_trafficguard()
@@ -23,20 +36,26 @@ class TrafficGuardService:
         """Проверяет, установлен ли TrafficGuard."""
         return self._is_trafficguard_installed()
 
-    def is_active(self) -> bool:
-        """Проверяет, активна ли служба TrafficGuard."""
-        return self._get_service_status() == "active"
-
     def get_status(self) -> str:
         """Возвращает человекочитаемый статус TrafficGuard."""
         installed = self._is_trafficguard_installed()
         if not installed:
-            return "TrafficGuard: not installed"
+            return format_status_snapshot(installed=False)
 
         version_result = run(self.TG_VERSION_CMD, check=False)
         version = version_result.stdout.strip() if version_result.returncode == 0 else "unknown"
         service_status = self._get_service_status() or "unknown"
-        return f"TrafficGuard: installed\nVersion: {version}\nService status: {service_status}"
+        return format_status_snapshot(
+            installed=True,
+            details=[
+                f"Версия TrafficGuard: {version}",
+                f"Состояние службы: {service_status}",
+            ],
+        )
+
+    def get_info_lines(self) -> tuple[str, ...]:
+        """Возвращает краткую информацию о сервисе для интерактивного UI."""
+        return self.INFO_LINES
 
     # 🔧 Константы: имена сервисов и пути
     INSTALL_SCRIPT_URL = "https://raw.githubusercontent.com/DonMatteoVPN/TrafficGuard-auto/refs/heads/main/install-trafficguard.sh"
@@ -134,7 +153,13 @@ class TrafficGuardService:
             status = result.stdout.strip()
             logger.debug(f"📡 Статус {self.SERVICE_NAME}: {status}")
 
-            valid_statuses = ("active", "inactive", "failed", "activating", "deactivating")
+            valid_statuses = (
+                "active",
+                "inactive",
+                "failed",
+                "activating",
+                "deactivating",
+            )
             return status if status in valid_statuses else None
 
         except FileNotFoundError:

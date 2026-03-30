@@ -38,7 +38,7 @@ def run_interactive_script():
     run_menu_loop(
         title="🤖 Добро пожаловать в deb_scripts! 🤖",
         header="Выберите утилиту для работы:",
-        items=build_main_menu_items(),
+        items_factory=build_main_menu_items,
         info_handler=display_program_info,
         exit_handler=_exit_program,
         info_label="00 - ℹ️ Информация о программе",

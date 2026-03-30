@@ -24,7 +24,7 @@ class TestDockerService:
 
     def test_get_status_not_installed(self):
         with patch.object(self.service, "_get_docker_version", return_value=None):
-            assert self.service.get_status() == "Docker: not installed"
+            assert self.service.get_status() == "Статус установки: 🔴 не установлен"
 
     def test_get_docker_version_success(self, mock_subprocess_result):
         """Тест успешной проверки наличия docker"""

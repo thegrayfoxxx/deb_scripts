@@ -1,12 +1,26 @@
 from pathlib import Path
 
 from app.utils.logger import get_logger
+from app.utils.status_text import format_status_snapshot
 from app.utils.subprocess_utils import run
 
 logger = get_logger(__name__)
 
 
 class UVService:
+    INFO_LINES = (
+        "UV — современный и быстрый менеджер пакетов Python",
+        "Основные преимущества:",
+        "• Высокая скорость установки пакетов (в 10-100 раз быстрее, чем pip)",
+        "• Современная система разрешения зависимостей",
+        "• Альтернатива для pip, pipenv, poetry и других",
+        "• Надежная изоляция окружений",
+        "• Улучшенная безопасность при установке пакетов",
+        "• Полная совместимость с PyPI и системой пакетов Python",
+        "🔗 GitHub репозиторий: https://github.com/astral-sh/uv",
+        "🔗 Официальный сайт: https://astral.sh",
+    )
+
     # 🔧 Константы: пути и конфигурация
     UV_INSTALL_URL = "https://astral.sh/uv/install.sh"
     UV_BIN_PATH = Path.home() / ".local" / "bin"
@@ -106,12 +120,22 @@ class UVService:
     def get_status(self) -> str:
         """Возвращает человекочитаемый статус uv."""
         if not self._is_uv_installed():
-            return "uv: not installed"
+            return format_status_snapshot(installed=False)
 
         version_result = run(self._get_uv_command("--version"), check=False)
         version = version_result.stdout.strip() if version_result.returncode == 0 else "unknown"
         path_ok = self._is_path_configured()
-        return f"uv: installed\nVersion: {version}\nPATH configured: {'yes' if path_ok else 'no'}"
+        return format_status_snapshot(
+            installed=True,
+            details=[
+                f"Версия uv: {version}",
+                f"PATH настроен: {'да' if path_ok else 'нет'}",
+            ],
+        )
+
+    def get_info_lines(self) -> tuple[str, ...]:
+        """Возвращает краткую информацию о сервисе для интерактивного UI."""
+        return self.INFO_LINES
 
     def install_uv(self) -> bool:
         """Устанавливает uv (идемпотентно: безопасно запускать много раз)"""
@@ -135,7 +159,8 @@ class UVService:
 
             logger.info("⬇️ Запуск официального установщика uv...")
             download_result = run(
-                ["curl", "-LsSf", self.UV_INSTALL_URL, "-o", "uv_install.sh"], check=False
+                ["curl", "-LsSf", self.UV_INSTALL_URL, "-o", "uv_install.sh"],
+                check=False,
             )
             if download_result.returncode != 0:
                 logger.error("❌ Не удалось скачать скрипт установки uv")
@@ -198,7 +223,10 @@ class UVService:
             logger.debug("🔍 Проверка наличия uv в системе...")
             if not self._is_uv_installed():
                 logger.info("✅ uv не установлен, пропускаем удаление 🧹")
-                run(["rm", "-f", str(self.UV_EXECUTABLE), str(self.UVX_EXECUTABLE)], check=False)
+                run(
+                    ["rm", "-f", str(self.UV_EXECUTABLE), str(self.UVX_EXECUTABLE)],
+                    check=False,
+                )
                 return True
 
             logger.debug("🧹 Очистка кэша uv (временные файлы и зависимости)...")
@@ -229,7 +257,8 @@ class UVService:
 
             logger.debug("🧹 Удаление исполняемых файлов uv и uvx...")
             bin_result = run(
-                ["rm", "-f", str(self.UV_EXECUTABLE), str(self.UVX_EXECUTABLE)], check=False
+                ["rm", "-f", str(self.UV_EXECUTABLE), str(self.UVX_EXECUTABLE)],
+                check=False,
             )
             logger.debug(f"🗑️ Bin files: {'удалено' if bin_result.returncode == 0 else 'ошибка'}")
 

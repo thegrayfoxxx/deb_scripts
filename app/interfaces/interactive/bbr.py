@@ -1,39 +1,50 @@
 from app.interfaces.interactive.menu_utils import (
-    build_standard_service_menu_items,
+    MenuItem,
     prompt_service_submenu,
     return_to_main_menu,
     run_menu_loop,
     show_info_screen,
 )
 from app.services.bbr import BBRService
-
-INFO_LINES = [
-    "BBR (Bottleneck Bandwidth and RTT) — это алгоритм управления перегрузками в TCP",
-    "Разработан Google для улучшения производительности сетевых соединений",
-    "Основные преимущества:",
-    "• Увеличение пропускной способности канала",
-    "• Снижение задержек (latency)",
-    "• Лучшая стабильность при высокой нагрузке",
-    "• Оптимизация для VPS и выделенных серверов",
-    "🔗 GitHub репозиторий: https://github.com/google/bbr",
-]
+from app.utils.status_text import (
+    activation_status_badge,
+    installation_status_badge,
+)
 
 
 def _build_menu_items(service: BBRService):
-    return build_standard_service_menu_items(
-        service=service,
-        primary_key="1",
-        primary_label="1 - 🔌 Включить BBR",
-        primary_action=service.enable_bbr,
-        primary_is_ok=service.is_active,
-        primary_ok_text="включен",
-        primary_fail_text="выключен",
-        uninstall_key="2",
-        uninstall_label="2 - 🔓 Отключить BBR",
-        uninstall_action=lambda: service.disable_bbr(confirm=True),
-        status_key="3",
-        status_label="3 - 📊 Показать статус BBR",
-    )
+    install_status = installation_status_badge(service.is_installed())
+    activation_status = activation_status_badge(service.is_active())
+
+    return [
+        MenuItem(
+            key="1",
+            label="1 - 📦 Подготовить BBR",
+            action=service.install,
+            status_renderer=lambda status=install_status: status,
+        ),
+        MenuItem(
+            key="2",
+            label="2 - 🔌 Включить BBR",
+            action=service.activate,
+            status_renderer=lambda status=activation_status: status,
+        ),
+        MenuItem(
+            key="3",
+            label="3 - 🔓 Отключить BBR",
+            action=lambda: service.deactivate(confirm=True),
+        ),
+        MenuItem(
+            key="4",
+            label="4 - 🗑️ Удалить конфигурацию BBR",
+            action=lambda: service.uninstall(confirm=True),
+        ),
+        MenuItem(
+            key="5",
+            label="5 - 📊 Показать статус BBR",
+            action=lambda: print(service.get_status()),
+        ),
+    ]
 
 
 def display_bbr_submenu(service: BBRService):
@@ -47,7 +58,7 @@ def display_bbr_submenu(service: BBRService):
 
 def display_bbr_info():
     """Отображает информацию о BBR сервисе"""
-    show_info_screen("🌐 TCP BBR Congestion Control", INFO_LINES)
+    show_info_screen("🌐 TCP BBR Congestion Control", BBRService().get_info_lines())
 
 
 def interactive_run():
@@ -56,7 +67,7 @@ def interactive_run():
     run_menu_loop(
         title="🌐 TCP BBR Congestion Control",
         header="Доступные действия для BBR:",
-        items=_build_menu_items(service),
+        items_factory=lambda: _build_menu_items(service),
         info_handler=display_bbr_info,
         exit_handler=return_to_main_menu,
         info_label="00 - ℹ️ Информация о BBR",

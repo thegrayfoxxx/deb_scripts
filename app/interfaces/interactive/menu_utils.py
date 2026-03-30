@@ -77,6 +77,7 @@ def build_standard_service_menu_items(
     status_label: str,
 ) -> list[MenuItem]:
     """Строит типовое меню: основное действие, удаление и показ статуса."""
+
     def render_primary_status() -> str:
         is_ok = primary_is_ok()
         return status_badge(is_ok, primary_ok_text, primary_fail_text)
@@ -106,7 +107,8 @@ def run_menu_loop(
     *,
     title: str,
     header: str,
-    items: Sequence[MenuItem],
+    items: Sequence[MenuItem] | None = None,
+    items_factory: Callable[[], Sequence[MenuItem]] | None = None,
     info_handler: Callable[[], None],
     exit_handler: Callable[[], None],
     intro_lines: Iterable[str] = (),
@@ -115,16 +117,21 @@ def run_menu_loop(
     invalid_message: str = "❌ Неверная опция, пожалуйста, попробуйте снова",
 ) -> None:
     """Универсальный цикл интерактивного меню."""
-    actions = {item.key: item.action for item in items}
+    if (items is None) == (items_factory is None):
+        msg = "Нужно передать либо items, либо items_factory"
+        raise ValueError(msg)
 
     while True:
+        current_items = items if items is not None else items_factory()
+        actions = {item.key: item.action for item in current_items}
+
         print(f"\n{title}")
         for line in intro_lines:
             print(line)
 
         user_input = prompt_menu(
             header=header,
-            items=items,
+            items=current_items,
             info_label=info_label,
             exit_label=exit_label,
         )

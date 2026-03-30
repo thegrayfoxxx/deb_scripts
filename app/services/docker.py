@@ -1,12 +1,24 @@
 import subprocess
 
 from app.utils.logger import get_logger
+from app.utils.status_text import format_status_snapshot
 from app.utils.subprocess_utils import run
 
 logger = get_logger(__name__)
 
 
 class DockerService:
+    INFO_LINES = (
+        "Docker — платформа для контейнеризации приложений и сервисов",
+        "Основные преимущества:",
+        "• Изоляция приложений в легковесных контейнерах",
+        "• Упрощение процесса развертывания",
+        "• Совместимость между различными системами",
+        "• Быстрый запуск и остановка сервисов",
+        "• Эффективное использование ресурсов",
+        "🔗 Официальный сайт: https://docker.com",
+    )
+
     def _get_docker_version(self) -> str | None | bool:
         """Возвращает версию Docker, если установлен, иначе None"""
         try:
@@ -42,8 +54,15 @@ class DockerService:
         """Возвращает человекочитаемый статус Docker."""
         version = self._get_docker_version()
         if version:
-            return f"Docker: installed\nVersion: {version}"
-        return "Docker: not installed"
+            return format_status_snapshot(
+                installed=True,
+                details=[f"Версия Docker: {version}"],
+            )
+        return format_status_snapshot(installed=False)
+
+    def get_info_lines(self) -> tuple[str, ...]:
+        """Возвращает краткую информацию о сервисе для интерактивного UI."""
+        return self.INFO_LINES
 
     def install_docker(self) -> bool:
         """Устанавливает Docker Engine"""
@@ -63,7 +82,8 @@ class DockerService:
 
             logger.info("⬇️ Запуск официального установщика Docker...")
             download_result = run(
-                ["curl", "-fsSL", "https://get.docker.com", "-o", "get-docker.sh"], check=False
+                ["curl", "-fsSL", "https://get.docker.com", "-o", "get-docker.sh"],
+                check=False,
             )
             if download_result.returncode != 0:
                 logger.error("❌ Не удалось скачать скрипт установки Docker")

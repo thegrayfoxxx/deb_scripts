@@ -14,10 +14,13 @@ def test_bbr_get_status_enabled():
     with (
         patch.object(service, "_get_current_congestion_control", return_value="bbr"),
         patch.object(service, "_is_bbr_module_loaded", return_value=True),
+        patch.object(service, "is_installed", return_value=True),
     ):
         status = service.get_status()
 
-    assert "BBR: enabled" in status
+    assert "Статус установки: 🟢 установлен" in status
+    assert "Статус активации: 🟢 активирован" in status
+    assert "Текущий алгоритм перегрузки: bbr" in status
 
 
 def test_docker_get_status_installed():
@@ -26,8 +29,8 @@ def test_docker_get_status_installed():
     with patch.object(service, "_get_docker_version", return_value="Docker version 24.0.5"):
         status = service.get_status()
 
-    assert "Docker: installed" in status
-    assert "Docker version 24.0.5" in status
+    assert "Статус установки: 🟢 установлен" in status
+    assert "Версия Docker: Docker version 24.0.5" in status
 
 
 def test_fail2ban_get_status_not_installed():
@@ -36,7 +39,8 @@ def test_fail2ban_get_status_not_installed():
     with patch.object(service, "_is_service_installed", return_value=False):
         status = service.get_status()
 
-    assert status == "Fail2Ban: not installed"
+    assert "Статус установки: 🔴 не установлен" in status
+    assert "Статус активации: 🔴 не активирован" in status
 
 
 def test_trafficguard_get_status_installed():
@@ -50,9 +54,9 @@ def test_trafficguard_get_status_installed():
         mock_run.return_value = Mock(returncode=0, stdout="TrafficGuard v1.0\n")
         status = service.get_status()
 
-    assert "TrafficGuard: installed" in status
-    assert "TrafficGuard v1.0" in status
-    assert "active" in status
+    assert "Статус установки: 🟢 установлен" in status
+    assert "Версия TrafficGuard: TrafficGuard v1.0" in status
+    assert "Состояние службы: active" in status
 
 
 def test_uv_get_status_installed():
@@ -66,9 +70,9 @@ def test_uv_get_status_installed():
         mock_run.return_value = Mock(returncode=0, stdout="uv 0.7.0\n")
         status = service.get_status()
 
-    assert "uv: installed" in status
-    assert "uv 0.7.0" in status
-    assert "PATH configured: yes" in status
+    assert "Статус установки: 🟢 установлен" in status
+    assert "Версия uv: uv 0.7.0" in status
+    assert "PATH настроен: да" in status
 
 
 def test_ufw_is_active_uses_internal_check():
@@ -76,3 +80,18 @@ def test_ufw_is_active_uses_internal_check():
 
     with patch.object(service, "_is_active", return_value=True):
         assert service.is_active() is True
+
+
+def test_ufw_get_status_does_not_call_is_active_recursively():
+    service = UfwService()
+
+    with (
+        patch.object(service, "is_installed", return_value=True),
+        patch.object(service, "is_active", side_effect=AssertionError("recursive call")),
+        patch("app.services.ufw.run") as mock_run,
+    ):
+        mock_run.return_value = Mock(returncode=0, stdout="Status: inactive\n")
+        status = service.get_status()
+
+    assert "Статус установки: 🟢 установлен" in status
+    assert "Статус активации: 🔴 не активирован" in status

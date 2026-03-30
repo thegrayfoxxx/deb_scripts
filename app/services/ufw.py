@@ -1,6 +1,7 @@
 import os
 
 from app.utils.logger import get_logger
+from app.utils.status_text import format_status_snapshot
 from app.utils.subprocess_utils import run
 
 logger = get_logger(__name__)
@@ -8,6 +9,17 @@ logger = get_logger(__name__)
 
 class UfwService:
     """Класс сервиса для управления межсетевым экраном UFW с настройкой общих портов."""
+
+    INFO_LINES = (
+        "UFW - это интерфейс для управления межсетевым экраном iptables",
+        "Предназначен для упрощения настройки правил межсетевого экрана",
+        "Основные возможности:",
+        "• Блокировка/разрешение сетевых соединений",
+        "• Настройка правил для конкретных портов и служб",
+        "• Защита от нежелательных входящих соединений",
+        "• Управление через простые команды",
+        "🔗 Официальная документация: https://help.ubuntu.com/community/UFW",
+    )
 
     def _ensure_default_policies(self) -> bool:
         """Применяет безопасные политики по умолчанию: deny incoming, allow outgoing."""
@@ -47,6 +59,18 @@ class UfwService:
     def is_active(self) -> bool:
         """Проверяет, включён ли UFW (публичный метод)."""
         return self._is_active()
+
+    def activate(self) -> bool:
+        """Включает UFW с безопасной конфигурацией по умолчанию."""
+        return self.enable_with_ssh_only()
+
+    def deactivate(self, confirm: bool = False) -> bool:
+        """Отключает UFW без удаления пакета."""
+        return self.disable(confirm=confirm)
+
+    def get_info_lines(self) -> tuple[str, ...]:
+        """Возвращает краткую информацию о сервисе для интерактивного UI."""
+        return self.INFO_LINES
 
     def ensure_safe_baseline(self) -> bool:
         """Гарантирует безопасную базовую конфигурацию UFW для серверных сценариев."""
@@ -221,8 +245,9 @@ class UfwService:
     def _is_active(self) -> bool:
         """Проверяет, активен ли UFW (включён)."""
         try:
-            status = self.get_status()
-            is_active = "status: active" in status.lower()
+            result = run(["ufw", "status"], check=False)
+            raw_status = result.stdout.strip() if result.returncode == 0 else ""
+            is_active = "status: active" in raw_status.lower()
             logger.debug(f"🔍 Статус UFW: {'✅ активен' if is_active else '❌ не активен'}")
             return is_active
         except Exception as e:
@@ -233,19 +258,31 @@ class UfwService:
         """Получает текущий статус UFW."""
         try:
             logger.debug("🔍 Получение текущего статуса межсетевого экрана UFW...")
+            installed = self.is_installed()
             result = run(["ufw", "status"], check=False)
 
             if result.returncode == 0:
-                status = result.stdout.strip()
-                logger.debug(f"📊 Статус UFW: {status}")
-                return status
+                raw_status = result.stdout.strip() or "недоступен"
+                logger.debug(f"📊 Статус UFW: {raw_status}")
             else:
                 logger.debug("❌ Не удалось получить статус UFW")
-                return "unknown"
+                raw_status = "недоступен"
+
+            is_active = installed and "status: active" in raw_status.lower()
+
+            return format_status_snapshot(
+                installed=installed,
+                active=is_active,
+                details=[f"Вывод ufw status: {raw_status}"],
+            )
 
         except Exception as e:
             logger.debug(f"❌ Ошибка при получении статуса UFW: {e}")
-            return "error"
+            return format_status_snapshot(
+                installed=self.is_installed(),
+                active=self.is_active() if self.is_installed() else False,
+                details=["Вывод ufw status: ошибка получения статуса"],
+            )
 
     def open_port(self, port: str) -> bool:
         """Открывает конкретный порт в UFW."""

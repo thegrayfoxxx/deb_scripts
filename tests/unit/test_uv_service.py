@@ -93,9 +93,9 @@ class TestUVService:
 
         status = self.service.get_status()
 
-        assert "uv: installed" in status
-        assert "uv 0.7.0" in status
-        assert "PATH configured: no" in status
+        assert "Статус установки: 🟢 установлен" in status
+        assert "Версия uv: uv 0.7.0" in status
+        assert "PATH настроен: нет" in status
         mock_run.assert_any_call([str(executable), "--version"], check=False)
 
     @patch("os.environ.get", return_value="/usr/bin:/bin")

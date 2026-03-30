@@ -23,7 +23,8 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.docker.DockerService", return_value=mock_docker_service
+                "app.interfaces.interactive.docker.DockerService",
+                return_value=mock_docker_service,
             ),
             patch(
                 "builtins.input", side_effect=["1", "0", "0"]
@@ -38,7 +39,7 @@ class TestInteractiveInterfacesIntegration:
                 pass  # Нормально, так как sys.exit замокан
 
             # Проверяем, что был вызван метод установки
-            mock_docker_service.install_docker.assert_called_once()
+            mock_docker_service.install.assert_called_once()
 
     def test_docker_interactive_menu_uninstall_flow(self):
         """Тест потока интерактивного меню Docker - удаление"""
@@ -47,7 +48,8 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.docker.DockerService", return_value=mock_docker_service
+                "app.interfaces.interactive.docker.DockerService",
+                return_value=mock_docker_service,
             ),
             patch(
                 "builtins.input", side_effect=["2", "0", "0"]
@@ -62,7 +64,7 @@ class TestInteractiveInterfacesIntegration:
                 pass  # Нормально, так как sys.exit замокан
 
             # Проверяем, что был вызван метод удаления
-            mock_docker_service.uninstall_docker.assert_called_once()
+            mock_docker_service.uninstall.assert_called_once()
 
     def test_bbr_interactive_menu_enable_flow(self):
         """Тест потока интерактивного меню BBR - включение"""
@@ -70,9 +72,12 @@ class TestInteractiveInterfacesIntegration:
         mock_bbr_service = Mock()
 
         with (
-            patch("app.interfaces.interactive.bbr.BBRService", return_value=mock_bbr_service),
             patch(
-                "builtins.input", side_effect=["1", "0", "0"]
+                "app.interfaces.interactive.bbr.BBRService",
+                return_value=mock_bbr_service,
+            ),
+            patch(
+                "builtins.input", side_effect=["2", "0", "0"]
             ),  # Выбираем включение BBR, затем выход, затем выход из главного меню
             patch("builtins.print"),
             patch("sys.exit"),  # Предотвращаем выход из системы
@@ -84,7 +89,7 @@ class TestInteractiveInterfacesIntegration:
                 pass  # Нормально, так как sys.exit замокан
 
             # Проверяем, что был вызван метод включения BBR
-            mock_bbr_service.enable_bbr.assert_called_once()
+            mock_bbr_service.activate.assert_called_once()
 
     def test_bbr_interactive_menu_disable_flow(self):
         """Тест потока интерактивного меню BBR - отключение"""
@@ -92,9 +97,12 @@ class TestInteractiveInterfacesIntegration:
         mock_bbr_service = Mock()
 
         with (
-            patch("app.interfaces.interactive.bbr.BBRService", return_value=mock_bbr_service),
             patch(
-                "builtins.input", side_effect=["2", "0", "0"]
+                "app.interfaces.interactive.bbr.BBRService",
+                return_value=mock_bbr_service,
+            ),
+            patch(
+                "builtins.input", side_effect=["3", "0", "0"]
             ),  # Выбираем отключение BBR, затем выход, затем выход из главного меню
             patch("builtins.print"),
             patch("sys.exit"),  # Предотвращаем выход из системы
@@ -106,7 +114,7 @@ class TestInteractiveInterfacesIntegration:
                 pass  # Нормально, так как sys.exit замокан
 
             # Проверяем, что был вызван метод отключения BBR
-            mock_bbr_service.disable_bbr.assert_called_once()
+            mock_bbr_service.deactivate.assert_called_once()
 
     def test_fail2ban_interactive_menu_flow_with_mocked_service(self):
         """Тест потока интерактивного меню Fail2Ban с замоканным сервисом"""
@@ -131,7 +139,7 @@ class TestInteractiveInterfacesIntegration:
                 pass  # Нормально, так как sys.exit замокан
 
             # Проверяем, что был вызван метод установки
-            mock_fail2ban_service.install_fail2ban.assert_called_once()
+            mock_fail2ban_service.install.assert_called_once()
 
     def test_fail2ban_interactive_menu_uninstall_flow(self):
         """Тест потока интерактивного меню Fail2Ban - удаление"""
@@ -144,7 +152,7 @@ class TestInteractiveInterfacesIntegration:
                 return_value=mock_fail2ban_service,
             ),
             patch(
-                "builtins.input", side_effect=["2", "0", "0"]
+                "builtins.input", side_effect=["4", "0", "0"]
             ),  # Выбираем удаление, затем выход, затем выход из главного меню
             patch("builtins.print"),
             patch("sys.exit"),  # Предотвращаем выход из системы
@@ -156,7 +164,7 @@ class TestInteractiveInterfacesIntegration:
                 pass  # Нормально, так как sys.exit замокан
 
             # Проверяем, что был вызван метод удаления
-            mock_fail2ban_service.uninstall_fail2ban.assert_called_once()
+            mock_fail2ban_service.uninstall.assert_called_once()
 
     def test_main_menu_selection_docker(self):
         """Тест выбора Docker в главном меню"""
@@ -165,7 +173,9 @@ class TestInteractiveInterfacesIntegration:
                 "builtins.input", side_effect=["3", "0", "0"]
             ),  # Выбираем Docker, затем выход из Docker, затем выход из главного
             patch("builtins.print"),
-            patch("app.interfaces.interactive.docker.interactive_run") as mock_docker_run,
+            patch(
+                "app.interfaces.interactive.docker.interactive_run"
+            ) as mock_docker_run,
         ):
             try:
                 run.run_interactive_script()
@@ -197,7 +207,9 @@ class TestInteractiveInterfacesIntegration:
     def test_main_menu_invalid_input(self):
         """Тест обработки неверного ввода в главном меню"""
         with (
-            patch("builtins.input", side_effect=["99", "0"]),  # Неверный ввод, затем выход
+            patch(
+                "builtins.input", side_effect=["99", "0"]
+            ),  # Неверный ввод, затем выход
             patch("builtins.print") as mock_print,
         ):
             try:
@@ -205,8 +217,12 @@ class TestInteractiveInterfacesIntegration:
             except SystemExit:
                 pass
 
-            printed_texts = [call.args[0] for call in mock_print.call_args_list if call.args]
-            assert any("❌ Неверный ввод, попробуйте снова" in text for text in printed_texts)
+            printed_texts = [
+                call.args[0] for call in mock_print.call_args_list if call.args
+            ]
+            assert any(
+                "❌ Неверный ввод, попробуйте снова" in text for text in printed_texts
+            )
 
     def test_main_menu_exit_option(self):
         """Тест опции выхода из главного меню"""
@@ -223,7 +239,8 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.docker.DockerService", return_value=mock_docker_service
+                "app.interfaces.interactive.docker.DockerService",
+                return_value=mock_docker_service,
             ),
             patch(
                 "builtins.input", side_effect=["99", "0", "0"]
@@ -238,8 +255,8 @@ class TestInteractiveInterfacesIntegration:
 
             # Проверяем, что были вызваны методы установки/удаления в соответствии с правильным сценарием
             # В случае неверного ввода методы установки/удаления не должны вызываться
-            mock_docker_service.install_docker.assert_not_called()
-            mock_docker_service.uninstall_docker.assert_not_called()
+            mock_docker_service.install.assert_not_called()
+            mock_docker_service.uninstall.assert_not_called()
 
     def test_interactive_menu_displays_info_correctly(self):
         """Тест отображения информации в интерактивных меню"""
@@ -247,7 +264,8 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.docker.DockerService", return_value=mock_docker_service
+                "app.interfaces.interactive.docker.DockerService",
+                return_value=mock_docker_service,
             ),
             patch(
                 "builtins.input",
@@ -261,13 +279,19 @@ class TestInteractiveInterfacesIntegration:
             patch("builtins.print") as mock_print,
             patch("sys.exit"),  # Предотвращаем выход из системы
         ):
+            mock_docker_service.get_info_lines.return_value = [
+                "Docker info",
+                "https://docker.com",
+            ]
             try:
                 docker.interactive_run()
             except SystemExit:
                 pass  # Нормально, так как sys.exit замокан
 
             # Проверяем, что была выведена информация о Docker
-            printed_texts = [call.args[0] for call in mock_print.call_args_list if call.args]
+            printed_texts = [
+                call.args[0] for call in mock_print.call_args_list if call.args
+            ]
 
             # Проверяем, что содержится информация о Docker
             docker_info_found = any(
@@ -277,7 +301,9 @@ class TestInteractiveInterfacesIntegration:
 
             # Проверяем, что содержится ссылка на официальный сайт
             link_found = any(
-                "https://docker.com" in text for text in printed_texts if isinstance(text, str)
+                "https://docker.com" in text
+                for text in printed_texts
+                if isinstance(text, str)
             )
             assert link_found, "Official website link should be displayed"
 
@@ -304,7 +330,7 @@ class TestInteractiveInterfacesIntegration:
                 pass  # Нормально, так как sys.exit замокан
 
             # Проверяем, что был вызван метод установки
-            mock_traffic_guard_service.install_trafficguard.assert_called_once()
+            mock_traffic_guard_service.install.assert_called_once()
 
     def test_traffic_guard_interactive_menu_uninstall_flow(self):
         """Тест потока интерактивного меню TrafficGuard - удаление"""
@@ -329,7 +355,7 @@ class TestInteractiveInterfacesIntegration:
                 pass  # Нормально, так как sys.exit замокан
 
             # Проверяем, что был вызван метод удаления
-            mock_traffic_guard_service.uninstall_trafficguard.assert_called_once()
+            mock_traffic_guard_service.uninstall.assert_called_once()
 
     def test_uv_interactive_menu_install_flow(self):
         """Тест потока интерактивного меню UV - установка"""
@@ -337,7 +363,9 @@ class TestInteractiveInterfacesIntegration:
         mock_uv_service = Mock()
 
         with (
-            patch("app.interfaces.interactive.uv.UVService", return_value=mock_uv_service),
+            patch(
+                "app.interfaces.interactive.uv.UVService", return_value=mock_uv_service
+            ),
             patch(
                 "builtins.input", side_effect=["1", "0", "0"]
             ),  # Выбираем установку, затем выход, затем выход из главного меню
@@ -351,7 +379,7 @@ class TestInteractiveInterfacesIntegration:
                 pass  # Нормально, так как sys.exit замокан
 
             # Проверяем, что был вызван метод установки
-            mock_uv_service.install_uv.assert_called_once()
+            mock_uv_service.install.assert_called_once()
 
     def test_uv_interactive_menu_uninstall_flow(self):
         """Тест потока интерактивного меню UV - удаление"""
@@ -359,7 +387,9 @@ class TestInteractiveInterfacesIntegration:
         mock_uv_service = Mock()
 
         with (
-            patch("app.interfaces.interactive.uv.UVService", return_value=mock_uv_service),
+            patch(
+                "app.interfaces.interactive.uv.UVService", return_value=mock_uv_service
+            ),
             patch(
                 "builtins.input", side_effect=["2", "0", "0"]
             ),  # Выбираем удаление, затем выход, затем выход из главного меню
@@ -373,4 +403,4 @@ class TestInteractiveInterfacesIntegration:
                 pass  # Нормально, так как sys.exit замокан
 
             # Проверяем, что был вызван метод удаления
-            mock_uv_service.uninstall_uv.assert_called_once()
+            mock_uv_service.uninstall.assert_called_once()

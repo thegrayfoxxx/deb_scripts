@@ -5,43 +5,68 @@ from app.interfaces.interactive.menu_utils import (
     run_menu_loop,
     show_info_screen,
 )
-from app.interfaces.interactive.status_utils import status_badge
 from app.services.ufw import UfwService
 from app.utils.logger import get_logger
+from app.utils.status_text import (
+    activation_status_badge,
+    installation_status_badge,
+)
 
 logger = get_logger(__name__)
 
-INFO_LINES = [
-    "UFW - это интерфейс для управления межсетевым экраном iptables",
-    "Предназначен для упрощения настройки правил межсетевого экрана",
-    "Основные возможности:",
-    "• Блокировка/разрешение сетевых соединений",
-    "• Настройка правил для конкретных портов и служб",
-    "• Защита от нежелательных входящих соединений",
-    "• Управление через простые команды",
-    "🔗 Официальная документация: https://help.ubuntu.com/community/UFW",
-]
-
 
 def _install_status(service: UfwService) -> str:
-    return status_badge(service.is_installed(), "установлен", "не установлен")
+    return installation_status_badge(service.is_installed())
 
 
 def _active_status(service: UfwService) -> str:
     if not service.is_installed():
-        return "🔴 не установлен"
-    return status_badge(service.is_active(), "включен", "выключен")
+        return installation_status_badge(False)
+    return activation_status_badge(service.is_active())
 
 
 def _build_menu_items(service: UfwService) -> list[MenuItem]:
+    install_status = _install_status(service)
+    active_status = _active_status(service)
+
     return [
-        MenuItem(key="1", label="1 - 🔧 Установить UFW", action=service.install, status_renderer=lambda: _install_status(service)),
-        MenuItem(key="2", label="2 - 🔐 Включить UFW (установит если нет)", action=service.enable_with_ssh_only, status_renderer=lambda: _active_status(service)),
-        MenuItem(key="3", label="3 - 🌐 Открыть порты (интерактивный выбор)", action=lambda: _open_specific_ports(service)),
-        MenuItem(key="4", label="4 - 📊 Показать статус UFW", action=lambda: print(service.get_status())),
-        MenuItem(key="5", label="5 - ⏹️  Отключить UFW", action=lambda: service.disable(confirm=True)),
-        MenuItem(key="6", label="6 - 🔄 Сбросить UFW (к настройкам по умолчанию)", action=lambda: service.reset(confirm=True)),
-        MenuItem(key="7", label="7 - 🗑️  Удалить UFW", action=lambda: service.uninstall(confirm=True)),
+        MenuItem(
+            key="1",
+            label="1 - 🔧 Установить UFW",
+            action=service.install,
+            status_renderer=lambda status=install_status: status,
+        ),
+        MenuItem(
+            key="2",
+            label="2 - 🔐 Включить UFW (установит если нет)",
+            action=service.activate,
+            status_renderer=lambda status=active_status: status,
+        ),
+        MenuItem(
+            key="3",
+            label="3 - 🌐 Открыть порты (интерактивный выбор)",
+            action=lambda: _open_specific_ports(service),
+        ),
+        MenuItem(
+            key="4",
+            label="4 - 📊 Показать статус UFW",
+            action=lambda: print(service.get_status()),
+        ),
+        MenuItem(
+            key="5",
+            label="5 - ⏹️  Отключить UFW",
+            action=lambda: service.deactivate(confirm=True),
+        ),
+        MenuItem(
+            key="6",
+            label="6 - 🔄 Сбросить UFW (к настройкам по умолчанию)",
+            action=lambda: service.reset(confirm=True),
+        ),
+        MenuItem(
+            key="7",
+            label="7 - 🗑️  Удалить UFW",
+            action=lambda: service.uninstall(confirm=True),
+        ),
     ]
 
 
@@ -53,6 +78,7 @@ def display_ufw_submenu(service: UfwService) -> str:
         info_label="00 - ℹ️ Информация о UFW",
     )
 
+
 def show_ufw_menu():
     """Интерактивное меню для управления UFW."""
     service = UfwService()
@@ -60,7 +86,7 @@ def show_ufw_menu():
     run_menu_loop(
         title="🔥 Управление UFW (Межсетевой экран)",
         header="Выберите действие:",
-        items=_build_menu_items(service),
+        items_factory=lambda: _build_menu_items(service),
         info_handler=display_ufw_info,
         exit_handler=return_to_main_menu,
         info_label="00 - ℹ️ Информация о UFW",
@@ -76,19 +102,39 @@ def _open_specific_ports(service):
 
     port_groups = {
         "1": {"name": "SSH", "ports": ["22"], "desc": "SSH (22, уже открыт)"},
-        "2": {"name": "Web-сервер", "ports": ["80", "443"], "desc": "HTTP и HTTPS (80, 443)"},
+        "2": {
+            "name": "Web-сервер",
+            "ports": ["80", "443"],
+            "desc": "HTTP и HTTPS (80, 443)",
+        },
         "3": {"name": "DNS", "ports": ["53"], "desc": "DNS (53)"},
-        "4": {"name": "DHCP", "ports": ["67", "68"], "desc": "DHCP сервер и клиент (67, 68)"},
+        "4": {
+            "name": "DHCP",
+            "ports": ["67", "68"],
+            "desc": "DHCP сервер и клиент (67, 68)",
+        },
         "5": {
             "name": "Почта",
             "ports": ["25", "587", "465", "143", "993", "110", "995"],
             "desc": "SMTP, Submission, SMTPS, IMAP, IMAPS, POP3, POP3S (25, 587, 465, 143, 993, 110, 995)",
         },
-        "6": {"name": "FTP", "ports": ["20", "21"], "desc": "FTP данные и команды (20, 21)"},
-        "7": {"name": "REMNAWAVE NODE", "ports": ["2222"], "desc": "REMNAWAVE NODE (2222)"},
+        "6": {
+            "name": "FTP",
+            "ports": ["20", "21"],
+            "desc": "FTP данные и команды (20, 21)",
+        },
+        "7": {
+            "name": "REMNAWAVE NODE",
+            "ports": ["2222"],
+            "desc": "REMNAWAVE NODE (2222)",
+        },
         "8": {"name": "MySQL", "ports": ["3306"], "desc": "MySQL (3306)"},
         "9": {"name": "PostgreSQL", "ports": ["5432"], "desc": "PostgreSQL (5432)"},
-        "10": {"name": "Все вышеуказанные", "ports": [], "desc": "Выбрать все группы (кроме SSH)"},
+        "10": {
+            "name": "Все вышеуказанные",
+            "ports": [],
+            "desc": "Выбрать все группы (кроме SSH)",
+        },
     }
 
     for key, value in port_groups.items():
@@ -134,7 +180,7 @@ def _open_specific_ports(service):
 
 def display_ufw_info():
     """Отображает информацию о UFW сервисе"""
-    show_info_screen("🔥 UFW (Uncomplicated Firewall)", INFO_LINES)
+    show_info_screen("🔥 UFW (Uncomplicated Firewall)", UfwService().get_info_lines())
 
 
 def interactive_run():

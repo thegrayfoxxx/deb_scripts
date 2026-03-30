@@ -131,12 +131,20 @@ class TestFail2BanService:
 
         assert result is False
 
-    def test_install_wrapper_delegates_to_install_fail2ban(self):
-        with patch.object(self.service, "install_fail2ban", return_value=True) as mock_install:
+    def test_install_prepares_package_and_config(self):
+        with (
+            patch.object(self.service, "_is_service_installed", side_effect=[False, True]),
+            patch.object(self.service, "_write_config_file", return_value=True) as mock_write,
+            patch("app.services.fail2ban.run") as mock_run,
+        ):
+            mock_run.side_effect = [
+                Mock(returncode=0, stdout=""),
+                Mock(returncode=0, stdout=""),
+            ]
             result = self.service.install()
 
         assert result is True
-        mock_install.assert_called_once_with()
+        mock_write.assert_called_once()
 
     def test_uninstall_wrapper_delegates_to_uninstall_fail2ban(self):
         with patch.object(self.service, "uninstall_fail2ban", return_value=True) as mock_uninstall:
@@ -147,7 +155,9 @@ class TestFail2BanService:
 
     def test_get_status_not_installed(self):
         with patch.object(self.service, "_is_service_installed", return_value=False):
-            assert self.service.get_status() == "Fail2Ban: not installed"
+            status = self.service.get_status()
+        assert "Статус установки: 🔴 не установлен" in status
+        assert "Статус активации: 🔴 не активирован" in status
 
     def test_get_status_installed_with_active_jail(self):
         with (
@@ -157,9 +167,10 @@ class TestFail2BanService:
         ):
             status = self.service.get_status()
 
-        assert "Fail2Ban: installed" in status
-        assert "Service status: active" in status
-        assert "SSH jail 'sshd': active" in status
+        assert "Статус установки: 🟢 установлен" in status
+        assert "Статус активации: 🟢 активирован" in status
+        assert "Состояние службы: active" in status
+        assert "SSH jail 'sshd': активен" in status
 
     def test_is_active_true_when_service_and_jail_are_active(self):
         with (
@@ -181,7 +192,7 @@ class TestFail2BanService:
 
     def test_install_fail2ban_returns_true_when_already_active(self):
         with (
-            patch.object(self.service, "_is_service_installed", return_value=True),
+            patch.object(self.service, "install", return_value=True),
             patch.object(self.service, "_get_service_status", return_value="active"),
             patch.object(self.service, "_is_jail_active", return_value=True),
         ):
@@ -268,17 +279,15 @@ class TestFail2BanService:
 
     def test_install_fail2ban_successful_full_flow(self):
         with (
-            patch.object(self.service, "_is_service_installed", return_value=False),
-            patch.object(self.service, "_write_config_file", return_value=True),
+            patch.object(self.service, "install", return_value=True),
             patch.object(self.service, "_wait_for_service_status", return_value=True),
             patch.object(self.service, "_is_jail_active", return_value=True),
             patch("app.services.fail2ban.run") as mock_run,
         ):
             mock_run.side_effect = [
-                Mock(returncode=0, stdout=""),
-                Mock(returncode=0, stdout=""),
-                Mock(returncode=0, stdout=""),
+                Mock(returncode=0, stdout=""),  # restart
                 Mock(returncode=0, stdout="status output"),
+                Mock(returncode=0, stdout="Status for the sshd jail"),
                 Mock(returncode=0, stdout="Status for the sshd jail"),
             ]
 
@@ -324,12 +333,10 @@ class TestFail2BanService:
     def test_uninstall_fail2ban_successful_full_flow(self):
         with (
             patch.object(self.service, "_is_service_installed", side_effect=[True, False]),
-            patch.object(self.service, "_wait_for_service_status", return_value=True),
+            patch.object(self.service, "deactivate", return_value=True),
             patch("app.services.fail2ban.run") as mock_run,
         ):
             mock_run.side_effect = [
-                Mock(returncode=0, stdout=""),
-                Mock(returncode=0, stdout=""),
                 Mock(returncode=0, stdout=""),
                 Mock(returncode=0, stdout=""),
             ]
@@ -341,12 +348,10 @@ class TestFail2BanService:
     def test_uninstall_fail2ban_returns_true_when_package_already_removed(self):
         with (
             patch.object(self.service, "_is_service_installed", side_effect=[True, False]),
-            patch.object(self.service, "_wait_for_service_status", return_value=True),
+            patch.object(self.service, "deactivate", return_value=True),
             patch("app.services.fail2ban.run") as mock_run,
         ):
             mock_run.side_effect = [
-                Mock(returncode=1, stdout=""),
-                Mock(returncode=1, stdout=""),
                 Mock(returncode=100, stdout=""),
                 Mock(returncode=0, stdout=""),
             ]
