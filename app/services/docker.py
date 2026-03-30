@@ -2,7 +2,6 @@ import subprocess
 
 from app.utils.logger import get_logger
 from app.utils.subprocess_utils import run
-from app.utils.update_utils import update_os
 
 logger = get_logger(__name__)
 
@@ -27,7 +26,26 @@ class DockerService:
             logger.debug("❌ Команда docker не найдена в PATH")
             return False
 
-    def install_docker(self):
+    def install(self) -> bool:
+        """Единая точка входа для установки Docker."""
+        return self.install_docker()
+
+    def uninstall(self, confirm: bool = False) -> bool:
+        """Единая точка входа для удаления Docker."""
+        return self.uninstall_docker(confirm=confirm)
+
+    def is_installed(self) -> bool:
+        """Проверяет, установлен ли Docker."""
+        return bool(self._get_docker_version())
+
+    def get_status(self) -> str:
+        """Возвращает человекочитаемый статус Docker."""
+        version = self._get_docker_version()
+        if version:
+            return f"Docker: installed\nVersion: {version}"
+        return "Docker: not installed"
+
+    def install_docker(self) -> bool:
         """Устанавливает Docker Engine"""
         try:
             logger.info("🐳 Начало установки Docker Engine...")
@@ -36,59 +54,58 @@ class DockerService:
             logger.info("🔍 Проверка наличия Docker Engine...")
             if version := self._get_docker_version():
                 logger.info(f"✅ Docker Engine уже установлен: {version} 🎉")
-                return
+                return True
 
-            # Шаг 1: Обновление ОС
-            logger.info("🔄 Обновление системы перед установкой Docker...")
-            update_os()
-            logger.debug("✅ Система успешно обновлена перед установкой Docker")
-
-            # Шаг 2: Установка curl (если нет)
+            # Шаг 1: Установка curl (если нет)
             logger.info("📦 Установка утилиты curl для загрузки скрипта...")
             curl_result = run(["apt", "install", "-y", "curl"], check=False)
             logger.debug(f"📋 apt install curl вывод:\n{curl_result.stdout.strip()}")
             if curl_result.returncode != 0:
                 logger.warning("⚠️ curl уже установлен или возникла незначительная ошибка")
 
-            # Шаг 3: Скачивание скрипта установки
+            # Шаг 2: Скачивание скрипта установки
             logger.info("⬇️ Скачивание официального скрипта get-docker.sh...")
-            # ✅ Исправлено: убраны пробелы в URL
             download_result = run(
                 ["curl", "-fsSL", "https://get.docker.com", "-o", "get-docker.sh"], check=False
             )
             if download_result.returncode != 0:
                 logger.error("❌ Не удалось скачать скрипт установки Docker")
-                return
+                return False
             logger.debug("✅ Скрипт загружен")
 
-            # Шаг 4: Запуск установки
+            # Шаг 3: Запуск установки
             logger.info("🔧 Запуск установки Docker Engine через официальный скрипт...")
             install_result = run(["sh", "./get-docker.sh"], check=False)
             logger.debug(f"📋 get-docker.sh вывод:\n{install_result.stdout.strip()}")
             if install_result.returncode != 0:
                 logger.error("❌ Ошибка при выполнении скрипта установки Docker")
-                return
+                return False
 
-            # Шаг 5: Очистка
+            # Шаг 4: Очистка
             logger.info("🧹 Очистка временных файлов после установки...")
             run(["rm", "./get-docker.sh"], check=False)
             logger.debug("✅ get-docker.sh удалён")
 
-            # Шаг 6: Финальная проверка установки
+            # Шаг 5: Финальная проверка установки
             logger.info("🔍 Финальная проверка установки...")
             if version := self._get_docker_version():
                 logger.info(f"✅ Docker Engine успешно установлен! {version} 🎉")
-            else:
-                logger.error("❌ Docker Engine не обнаружен после завершения установки")
+                return True
+
+            logger.error("❌ Docker Engine не обнаружен после завершения установки")
+            return False
 
         except FileNotFoundError as e:
             logger.error(f"📁 Команда не найдена: {e}")
+            return False
         except PermissionError as e:
             logger.error(f"🔐 Ошибка прав доступа (требуется root?): {e}")
+            return False
         except Exception:
             logger.exception("💥 Критическая ошибка при установке Docker")
+            return False
 
-    def uninstall_docker(self, confirm: bool = False):
+    def uninstall_docker(self, confirm: bool = False) -> bool:
         """Полностью удаляет Docker Engine и данные (идемпотентно)"""
         try:
             if confirm:
@@ -97,7 +114,7 @@ class DockerService:
                 )
                 if confirmation.lower() not in ["y", "yes"]:
                     logger.info("❌ Удаление Docker отменено пользователем")
-                    return
+                    return True
 
             logger.warning("⚠️ Начало удаления Docker Engine...")
             logger.warning("⚠️ Все контейнеры, образы и тома будут безвозвратно удалены!")
@@ -106,11 +123,10 @@ class DockerService:
             logger.info("🔍 Проверка наличия Docker Engine...")
             if not self._get_docker_version():
                 logger.info("✅ Docker Engine не установлен, пропускаем удаление 🧹")
-                # Чистим конфиги и выходим
                 run(["rm", "-f", "/etc/apt/sources.list.d/docker.list"], check=False)
                 run(["rm", "-f", "/etc/apt/keyrings/docker.asc"], check=False)
                 logger.debug("✅ Конфигурационные файлы удалены")
-                return
+                return True
 
             # Шаг 1: Удаление пакетов (с обработкой "уже не установлен")
             logger.info("🗑️ Удаление пакетов Docker Engine...")
@@ -161,10 +177,14 @@ class DockerService:
             logger.info("🔍 Проверка успешного удаления Docker Engine...")
             if not self._get_docker_version():
                 logger.info("✅ Docker Engine полностью удален 🧹")
-            else:
-                logger.warning("⚠️ Docker Engine всё ещё обнаружен в системе")
+                return True
+
+            logger.warning("⚠️ Docker Engine всё ещё обнаружен в системе")
+            return False
 
         except PermissionError as e:
             logger.error(f"🔐 Ошибка прав доступа (требуется root?): {e}")
+            return False
         except Exception:
             logger.exception("💥 Критическая ошибка при удалении Docker")
+            return False

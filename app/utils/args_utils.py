@@ -20,13 +20,13 @@ def parse_args():
         "--install",
         nargs="+",
         type=str,
-        help="Режим неинтерактивной установки: 1=BBR, 2=Docker, 3=Fail2Ban, 4=TrafficGuard, 5=UV",
+        help="Режим неинтерактивной установки: 1=UFW, 2=BBR, 3=Docker, 4=Fail2Ban, 5=TrafficGuard, 6=UV",
     )
     parser.add_argument(
         "--uninstall",
         nargs="+",
         type=str,
-        help="Режим неинтерактивного удаления: 1=BBR, 2=Docker, 3=Fail2Ban, 4=TrafficGuard, 5=UV",
+        help="Режим неинтерактивного удаления: 1=UFW, 2=BBR, 3=Docker, 4=Fail2Ban, 5=TrafficGuard, 6=UV",
     )
 
     return parser.parse_args()
@@ -37,6 +37,8 @@ if "pytest" in sys.modules:
     # During tests, provide a default configuration
     class DefaultArgs:
         mode = "prod"
+        install = None
+        uninstall = None
 
     app_args = DefaultArgs()
 else:

@@ -1,57 +1,65 @@
+from app.interfaces.interactive.menu_utils import (
+    build_standard_service_menu_items,
+    prompt_service_submenu,
+    return_to_main_menu,
+    run_menu_loop,
+    show_info_screen,
+)
 from app.services.traffic_guard import TrafficGuardService
 
+INFO_LINES = [
+    "TrafficGuard — комплексная система защиты сервера от сканирования и атак",
+    "Основные возможности:",
+    "• Блокировка подозрительных IP-адресов по множеству критериев",
+    "• Защита от сканирования портов и сервисов",
+    "• Мониторинг сетевой активности в реальном времени",
+    "• Интеграция с системами firewall (iptables, nftables)",
+    "• Автоматическое обновление списков заблокированных адресов",
+    "• Поддержка IPv4 и IPv6",
+    "🔗 GitHub репозиторий: https://github.com/DonMatteoVPN/TrafficGuard-auto",
+]
 
-def display_trafficguard_submenu():
-    """Отображает подменю для TrafficGuard с выбором действий"""
-    print("\nДоступные действия для TrafficGuard:")
-    user_input = str(
-        input(
-            "1 - 🔒 Установить TrafficGuard\n"
-            "2 - 🔓 Удалить TrafficGuard\n"
-            "00 - ℹ️ Информация о TrafficGuard\n"
-            "0 - 🏠 Вернуться в главное меню\n"
-            "Введите номер: "
-        )
+
+def _build_menu_items(service: TrafficGuardService):
+    return build_standard_service_menu_items(
+        service=service,
+        primary_key="1",
+        primary_label="1 - 🔒 Установить TrafficGuard",
+        primary_action=service.install_trafficguard,
+        primary_is_ok=service.is_installed,
+        primary_ok_text="установлен",
+        primary_fail_text="не установлен",
+        uninstall_key="2",
+        uninstall_label="2 - 🔓 Удалить TrafficGuard",
+        uninstall_action=lambda: service.uninstall_trafficguard(confirm=True),
+        status_key="3",
+        status_label="3 - 📊 Показать статус TrafficGuard",
     )
-    return user_input
+
+
+def display_trafficguard_submenu(service: TrafficGuardService):
+    """Отображает подменю для TrafficGuard с выбором действий"""
+    return prompt_service_submenu(
+        header="Доступные действия для TrafficGuard:",
+        items=_build_menu_items(service),
+        info_label="00 - ℹ️ Информация о TrafficGuard",
+    )
 
 
 def display_trafficguard_info():
     """Отображает информацию о TrafficGuard сервисе"""
-    print("\n⚔️ TrafficGuard Server Protection")
-    print("TrafficGuard — комплексная система защиты сервера от сканирования и атак")
-    print("Основные возможности:")
-    print("• Блокировка подозрительных IP-адресов по множеству критериев")
-    print("• Защита от сканирования портов и сервисов")
-    print("• Мониторинг сетевой активности в реальном времени")
-    print("• Интеграция с системами firewall (iptables, nftables)")
-    print("• Автоматическое обновление списков заблокированных адресов")
-    print("• Поддержка IPv4 и IPv6")
-    print("🔗 GitHub репозиторий: https://github.com/DonMatteoVPN/TrafficGuard-auto")
-    print("\nДля возврата в меню нажмите любую клавишу")
-    input()
+    show_info_screen("⚔️ TrafficGuard Server Protection", INFO_LINES)
 
 
 def interactive_run():
-    traffic_guard = TrafficGuardService()
+    service = TrafficGuardService()
 
-    print("\n⚔️ TrafficGuard Server Protection")
-
-    user_input = display_trafficguard_submenu()
-
-    match user_input:
-        case "0":
-            from app.interfaces.interactive.run import run_interactive_script
-
-            run_interactive_script()
-        case "00":
-            display_trafficguard_info()
-            interactive_run()
-        case "1":
-            traffic_guard.install_trafficguard()
-            interactive_run()
-        case "2":
-            traffic_guard.uninstall_trafficguard(confirm=True)
-            interactive_run()
-        case _:
-            interactive_run()
+    run_menu_loop(
+        title="⚔️ TrafficGuard Server Protection",
+        header="Доступные действия для TrafficGuard:",
+        items=_build_menu_items(service),
+        info_handler=display_trafficguard_info,
+        exit_handler=return_to_main_menu,
+        info_label="00 - ℹ️ Информация о TrafficGuard",
+        exit_label="0 - 🏠 Вернуться в главное меню",
+    )

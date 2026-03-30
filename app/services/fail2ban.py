@@ -3,7 +3,6 @@ from pathlib import Path
 
 from app.utils.logger import get_logger
 from app.utils.subprocess_utils import run
-from app.utils.update_utils import update_os
 
 logger = get_logger(__name__)
 
@@ -125,7 +124,37 @@ findtime = 1h
         logger.warning(f"⚠️ Таймаут ожидания статуса '{target_status}' после {elapsed:.1f}с")
         return False
 
-    def install_fail2ban(self):
+    def install(self) -> bool:
+        """Единая точка входа для установки Fail2Ban."""
+        return self.install_fail2ban()
+
+    def uninstall(self, confirm: bool = False) -> bool:
+        """Единая точка входа для удаления Fail2Ban."""
+        return self.uninstall_fail2ban(confirm=confirm)
+
+    def is_installed(self) -> bool:
+        """Проверяет, установлен ли Fail2Ban."""
+        return self._is_service_installed()
+
+    def is_active(self) -> bool:
+        """Проверяет, активен ли Fail2Ban и его SSH jail."""
+        return self._get_service_status() == "active" and self._is_jail_active(self.JAIL_NAME)
+
+    def get_status(self) -> str:
+        """Возвращает человекочитаемый статус Fail2Ban."""
+        installed = self._is_service_installed()
+        if not installed:
+            return "Fail2Ban: not installed"
+
+        service_status = self._get_service_status() or "unknown"
+        jail_active = self._is_jail_active(self.JAIL_NAME)
+        return (
+            "Fail2Ban: installed\n"
+            f"Service status: {service_status}\n"
+            f"SSH jail '{self.JAIL_NAME}': {'active' if jail_active else 'inactive'}"
+        )
+
+    def install_fail2ban(self) -> bool:
         """Устанавливает и настраивает Fail2Ban для защиты SSH (идемпотентно)"""
         try:
             logger.info("🛡️ Начало установки Fail2Ban...")
@@ -135,15 +164,10 @@ findtime = 1h
             if self._is_service_installed():
                 if self._get_service_status() == "active" and self._is_jail_active(self.JAIL_NAME):
                     logger.info(f"✅ Fail2Ban уже установлен и jail '{self.JAIL_NAME}' активен 🎉")
-                    return
+                    return True
                 logger.info("ℹ️ Fail2Ban установлен, но требует настройки...")
             else:
                 logger.info("📦 Fail2Ban не установлен, начинаем установку...")
-
-            # 🔄 Обновление системы
-            logger.info("🔄 Обновление системы перед установкой...")
-            update_os()
-            logger.debug("✅ Система обновлена")
 
             # 📦 Шаг 1: Установка пакета
             logger.info(f"📦 Установка пакета {self.SERVICE_NAME}...")
@@ -152,7 +176,7 @@ findtime = 1h
 
             if install_result.returncode != 0:
                 logger.error("❌ Ошибка при установке fail2ban")
-                return
+                return False
             logger.debug("✅ Пакет fail2ban установлен")
 
             # 📝 Шаг 2: Создание конфигурации jail
@@ -162,7 +186,7 @@ findtime = 1h
                 self.SSH_JAIL_CONFIG,
                 f"jail конфигурация для {self.JAIL_NAME}",
             ):
-                return
+                return False
             logger.debug(f"✅ Конфиг записан: {self.JAIL_CONFIG_PATH}")
 
             # ⚙️ Шаг 3: Включение автозагрузки
@@ -178,40 +202,41 @@ findtime = 1h
             restart_result = run(["systemctl", "restart", self.SERVICE_NAME], check=False)
             if restart_result.returncode != 0:
                 logger.error("❌ Ошибка при перезапуске fail2ban")
-                return
+                return False
             logger.debug("✅ Служба перезапущена")
 
             # ⏳ Шаг 5: Ожидание запуска
             logger.info("⏳ Ожидание запуска службы...")
             if not self._wait_for_service_status("active", max_wait=30):
                 logger.error("❌ Служба не запустилась в течение таймаута")
-                return
+                return False
 
             # ✅ Шаг 6: Финальная проверка
             logger.info("🔍 Финальная проверка конфигурации...")
 
-            # Проверка статуса службы
             status_result = run(["systemctl", "status", self.SERVICE_NAME], check=False)
             logger.debug(f"📋 systemctl status:\n{status_result.stdout.strip()}")
 
-            # Проверка jail
             if self._is_jail_active(self.JAIL_NAME):
                 client_result = run(["fail2ban-client", "status", self.JAIL_NAME], check=False)
                 logger.debug(f"📋 fail2ban-client status:\n{client_result.stdout.strip()}")
                 logger.info(f"✅ Fail2Ban успешно установлен! Jail '{self.JAIL_NAME}' активен 🛡️🎉")
-            else:
-                logger.warning(
-                    f"⚠️ Служба активна, но jail '{self.JAIL_NAME}' не удалось проверить"
-                )
+                return True
+
+            logger.warning(f"⚠️ Служба активна, но jail '{self.JAIL_NAME}' не удалось проверить")
+            return False
 
         except FileNotFoundError as e:
             logger.error(f"📁 Команда не найдена: {e}")
+            return False
         except PermissionError as e:
             logger.error(f"🔐 Ошибка прав доступа (требуется root?): {e}")
+            return False
         except Exception:
             logger.exception("💥 Критическая ошибка при установке Fail2Ban")
+            return False
 
-    def uninstall_fail2ban(self, confirm: bool = False):
+    def uninstall_fail2ban(self, confirm: bool = False) -> bool:
         """Полностью удаляет Fail2Ban и его конфигурацию (идемпотентно)"""
         try:
             if confirm:
@@ -220,16 +245,15 @@ findtime = 1h
                 )
                 if confirmation.lower() not in ["y", "yes"]:
                     logger.info("❌ Удаление Fail2Ban отменено пользователем")
-                    return
+                    return True
             logger.warning("⚠️ Начало удаления Fail2Ban...")
 
             # 🔍 Проверка: а установлен ли Fail2Ban вообще?
             logger.info("🔍 Проверка наличия Fail2Ban...")
             if not self._is_service_installed():
                 logger.info("✅ Fail2Ban не установлен, пропускаем удаление 🧹")
-                # Всё равно почистим конфиг на всякий случай
                 run(["rm", "-f", self.JAIL_CONFIG_PATH], check=False)
-                return
+                return True
 
             # 🛑 Шаг 1: Остановка службы
             logger.info("🛑 Остановка службы fail2ban...")
@@ -258,14 +282,12 @@ findtime = 1h
 
             if remove_result.returncode == 0:
                 logger.info("✅ Пакет fail2ban удалён")
+            elif remove_result.returncode == 100:
+                logger.info("✅ Пакет fail2ban уже удалён")
             else:
-                # Код 100 = пакет уже удалён
-                if remove_result.returncode == 100:
-                    logger.info("✅ Пакет fail2ban уже удалён")
-                else:
-                    logger.warning(
-                        f"⚠️ Предупреждение при удалении пакета (код {remove_result.returncode})"
-                    )
+                logger.warning(
+                    f"⚠️ Предупреждение при удалении пакета (код {remove_result.returncode})"
+                )
 
             # 🧹 Шаг 5: Очистка конфигурации
             logger.info("🧹 Очистка конфигурационных файлов...")
@@ -276,13 +298,17 @@ findtime = 1h
             logger.info("🔍 Финальная проверка удаления...")
             if not self._is_service_installed():
                 logger.info("✅ Fail2Ban полностью удалён 🧹")
-            else:
-                logger.warning("⚠️ Fail2Ban всё ещё обнаружен в системе")
+                return True
+
+            logger.warning("⚠️ Fail2Ban всё ещё обнаружен в системе")
+            return False
 
         except FileNotFoundError:
-            # Команда не найдена = скорее всего уже удалено
             logger.info("✅ Fail2Ban уже удалён (команда не найдена) 🧹")
+            return True
         except PermissionError as e:
             logger.error(f"🔐 Ошибка прав доступа (требуется root?): {e}")
+            return False
         except Exception:
             logger.exception("💥 Критическая ошибка при удалении Fail2Ban")
+            return False

@@ -37,13 +37,16 @@ def get_logger(name: str, log_file: str = "app.log", level: int = logging.INFO) 
     logger.addHandler(console_handler)
 
     # 2. Обработчик для ФАЙЛА
-    # Создаём директорию для логов, если не существует
-    log_path = Path(log_file)
-    log_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        log_path = Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
 
-    file_handler = logging.FileHandler(log_path, encoding="utf-8", mode="a")
-    file_handler.setFormatter(file_formatter)
-    file_handler.setLevel(level)
-    logger.addHandler(file_handler)
+        file_handler = logging.FileHandler(log_path, encoding="utf-8", mode="a")
+        file_handler.setFormatter(file_formatter)
+        file_handler.setLevel(level)
+        logger.addHandler(file_handler)
+    except OSError:
+        # Не ломаем импорт приложения, если лог-файл недоступен.
+        pass
 
     return logger

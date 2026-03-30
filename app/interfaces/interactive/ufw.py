@@ -1,66 +1,79 @@
+from app.interfaces.interactive.menu_utils import (
+    MenuItem,
+    prompt_service_submenu,
+    return_to_main_menu,
+    run_menu_loop,
+    show_info_screen,
+)
+from app.interfaces.interactive.status_utils import status_badge
 from app.services.ufw import UfwService
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+INFO_LINES = [
+    "UFW - это интерфейс для управления межсетевым экраном iptables",
+    "Предназначен для упрощения настройки правил межсетевого экрана",
+    "Основные возможности:",
+    "• Блокировка/разрешение сетевых соединений",
+    "• Настройка правил для конкретных портов и служб",
+    "• Защита от нежелательных входящих соединений",
+    "• Управление через простые команды",
+    "🔗 Официальная документация: https://help.ubuntu.com/community/UFW",
+]
+
+
+def _install_status(service: UfwService) -> str:
+    return status_badge(service.is_installed(), "установлен", "не установлен")
+
+
+def _active_status(service: UfwService) -> str:
+    if not service.is_installed():
+        return "🔴 не установлен"
+    return status_badge(service.is_active(), "включен", "выключен")
+
+
+def _build_menu_items(service: UfwService) -> list[MenuItem]:
+    return [
+        MenuItem(key="1", label="1 - 🔧 Установить UFW", action=service.install, status_renderer=lambda: _install_status(service)),
+        MenuItem(key="2", label="2 - 🔐 Включить UFW (установит если нет)", action=service.enable_with_ssh_only, status_renderer=lambda: _active_status(service)),
+        MenuItem(key="3", label="3 - 🌐 Открыть порты (интерактивный выбор)", action=lambda: _open_specific_ports(service)),
+        MenuItem(key="4", label="4 - 📊 Показать статус UFW", action=lambda: print(service.get_status())),
+        MenuItem(key="5", label="5 - ⏹️  Отключить UFW", action=lambda: service.disable(confirm=True)),
+        MenuItem(key="6", label="6 - 🔄 Сбросить UFW (к настройкам по умолчанию)", action=lambda: service.reset(confirm=True)),
+        MenuItem(key="7", label="7 - 🗑️  Удалить UFW", action=lambda: service.uninstall(confirm=True)),
+    ]
+
+
+def display_ufw_submenu(service: UfwService) -> str:
+    """Отображает подменю UFW и возвращает выбор пользователя."""
+    return prompt_service_submenu(
+        header="Выберите действие:",
+        items=_build_menu_items(service),
+        info_label="00 - ℹ️ Информация о UFW",
+    )
 
 def show_ufw_menu():
     """Интерактивное меню для управления UFW."""
     service = UfwService()
 
-    print("\n🔥 Управление UFW (Межсетевой экран)")
-    print("💡 По умолчанию: порт SSH (22) всегда разрешён для безопасности")
-
-    while True:
-        print("\nВыберите действие:")
-        user_input = str(
-            input(
-                "1 - 🔧 Установить UFW\n"
-                "2 - 🔐 Включить UFW (установит если нет)\n"
-                "3 - 🌐 Открыть порты (интерактивный выбор)\n"
-                "4 - 📊 Показать статус UFW\n"
-                "5 - ⏹️  Отключить UFW\n"
-                "6 - 🔄 Сбросить UFW (к настройкам по умолчанию)\n"
-                "7 - 🗑️  Удалить UFW\n"
-                "00 - ℹ️ Информация о UFW\n"
-                "0 - 🏠 Вернуться в главное меню\n"
-                "Введите номер: "
-            )
-        )
-
-        match user_input:
-            case "0":
-                print("🏠 Возврат в главное меню...")
-                from app.interfaces.interactive.run import run_interactive_script
-
-                run_interactive_script()
-            case "00":
-                display_ufw_info()
-                show_ufw_menu()
-            case "1":
-                service.install()
-            case "2":
-                service.enable_with_ssh_only()
-            case "3":
-                _open_specific_ports(service)
-            case "4":
-                status = service.get_status()
-                print(status)
-            case "5":
-                service.disable(confirm=True)
-            case "6":
-                service.reset(confirm=True)
-            case "7":
-                service.uninstall(confirm=True)
-            case _:
-                print("❌ Неверная опция, пожалуйста, попробуйте снова")
+    run_menu_loop(
+        title="🔥 Управление UFW (Межсетевой экран)",
+        header="Выберите действие:",
+        items=_build_menu_items(service),
+        info_handler=display_ufw_info,
+        exit_handler=return_to_main_menu,
+        info_label="00 - ℹ️ Информация о UFW",
+        exit_label="0 - 🏠 Вернуться в главное меню",
+        intro_lines=["💡 По умолчанию: порт SSH (22) всегда разрешён для безопасности"],
+        invalid_message="❌ Неверная опция, пожалуйста, попробуйте снова",
+    )
 
 
 def _open_specific_ports(service):
     """Интерактивное открытие конкретных портов."""
     print("Выберите порты для открытия:")
 
-    # Группы портов
     port_groups = {
         "1": {"name": "SSH", "ports": ["22"], "desc": "SSH (22, уже открыт)"},
         "2": {"name": "Web-сервер", "ports": ["80", "443"], "desc": "HTTP и HTTPS (80, 443)"},
@@ -78,7 +91,6 @@ def _open_specific_ports(service):
         "10": {"name": "Все вышеуказанные", "ports": [], "desc": "Выбрать все группы (кроме SSH)"},
     }
 
-    # Отображение опций
     for key, value in port_groups.items():
         print(f"{key} - {value['name']}: {value['desc']}")
 
@@ -94,11 +106,11 @@ def _open_specific_ports(service):
 
     for option in choice:
         if option in port_groups:
-            if option == "9":  # Все группы
+            if option == "10":
                 for key, value in port_groups.items():
-                    if key != "9" and key != "3":  # Исключаем "Все вышеуказанные" и SSH
+                    if key not in {"1", "10"}:
                         all_ports_to_open.update(value["ports"])
-            elif option != "3":  # Исключаем SSH, так как он уже открыт
+            elif option != "1":
                 all_ports_to_open.update(port_groups[option]["ports"])
 
     if all_ports_to_open:
@@ -122,17 +134,7 @@ def _open_specific_ports(service):
 
 def display_ufw_info():
     """Отображает информацию о UFW сервисе"""
-    print("\n🔥 UFW (Uncomplicated Firewall)")
-    print("UFW - это интерфейс для управления межсетевым экраном iptables")
-    print("Предназначен для упрощения настройки правил межсетевого экрана")
-    print("Основные возможности:")
-    print("• Блокировка/разрешение сетевых соединений")
-    print("• Настройка правил для конкретных портов и служб")
-    print("• Защита от нежелательных входящих соединений")
-    print("• Управление через простые команды")
-    print("🔗 Официальная документация: https://help.ubuntu.com/community/UFW")
-    print("\nДля возврата в меню нажмите любую клавишу")
-    input()
+    show_info_screen("🔥 UFW (Uncomplicated Firewall)", INFO_LINES)
 
 
 def interactive_run():

@@ -1,56 +1,64 @@
+from app.interfaces.interactive.menu_utils import (
+    build_standard_service_menu_items,
+    prompt_service_submenu,
+    return_to_main_menu,
+    run_menu_loop,
+    show_info_screen,
+)
 from app.services.docker import DockerService
 
+INFO_LINES = [
+    "Docker — платформа для контейнеризации приложений и сервисов",
+    "Основные преимущества:",
+    "• Изоляция приложений в легковесных контейнерах",
+    "• Упрощение процесса развертывания",
+    "• Совместимость между различными системами",
+    "• Быстрый запуск и остановка сервисов",
+    "• Эффективное использование ресурсов",
+    "🔗 Официальный сайт: https://docker.com",
+]
 
-def display_docker_submenu():
-    """Отображает подменю для Docker с выбором действий"""
-    print("\nДоступные действия для Docker:")
-    user_input = str(
-        input(
-            "1 - 📦 Установить Docker\n"
-            "2 - 🗑️ Удалить Docker\n"
-            "00 - ℹ️ Информация о Docker\n"
-            "0 - 🏠 Вернуться в главное меню\n"
-            "Введите номер: "
-        )
+
+def _build_menu_items(service: DockerService):
+    return build_standard_service_menu_items(
+        service=service,
+        primary_key="1",
+        primary_label="1 - 📦 Установить Docker",
+        primary_action=service.install_docker,
+        primary_is_ok=service.is_installed,
+        primary_ok_text="установлен",
+        primary_fail_text="не установлен",
+        uninstall_key="2",
+        uninstall_label="2 - 🗑️ Удалить Docker",
+        uninstall_action=lambda: service.uninstall_docker(confirm=True),
+        status_key="3",
+        status_label="3 - 📊 Показать статус Docker",
     )
-    return user_input
+
+
+def display_docker_submenu(service: DockerService):
+    """Отображает подменю для Docker с выбором действий"""
+    return prompt_service_submenu(
+        header="Доступные действия для Docker:",
+        items=_build_menu_items(service),
+        info_label="00 - ℹ️ Информация о Docker",
+    )
 
 
 def display_docker_info():
     """Отображает информацию о Docker сервисе"""
-    print("\n🐳 Docker Container Platform")
-    print("Docker — платформа для контейнеризации приложений и сервисов")
-    print("Основные преимущества:")
-    print("• Изоляция приложений в легковесных контейнерах")
-    print("• Упрощение процесса развертывания")
-    print("• Совместимость между различными системами")
-    print("• Быстрый запуск и остановка сервисов")
-    print("• Эффективное использование ресурсов")
-    print("🔗 Официальный сайт: https://docker.com")
-    print("\nДля возврата в меню нажмите любую клавишу")
-    input()
+    show_info_screen("🐳 Docker Container Platform", INFO_LINES)
 
 
 def interactive_run():
-    docker = DockerService()
+    service = DockerService()
 
-    print("\n🐳 Docker Container Platform")
-
-    user_input = display_docker_submenu()
-
-    match user_input:
-        case "0":
-            from app.interfaces.interactive.run import run_interactive_script
-
-            run_interactive_script()
-        case "00":
-            display_docker_info()
-            interactive_run()
-        case "1":
-            docker.install_docker()
-            interactive_run()
-        case "2":
-            docker.uninstall_docker(confirm=True)
-            interactive_run()
-        case _:
-            interactive_run()
+    run_menu_loop(
+        title="🐳 Docker Container Platform",
+        header="Доступные действия для Docker:",
+        items=_build_menu_items(service),
+        info_handler=display_docker_info,
+        exit_handler=return_to_main_menu,
+        info_label="00 - ℹ️ Информация о Docker",
+        exit_label="0 - 🏠 Вернуться в главное меню",
+    )

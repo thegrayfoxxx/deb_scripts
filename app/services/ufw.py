@@ -2,13 +2,31 @@ import os
 
 from app.utils.logger import get_logger
 from app.utils.subprocess_utils import run
-from app.utils.update_utils import update_os
 
 logger = get_logger(__name__)
 
 
 class UfwService:
     """Класс сервиса для управления межсетевым экраном UFW с настройкой общих портов."""
+
+    def _ensure_default_policies(self) -> bool:
+        """Применяет безопасные политики по умолчанию: deny incoming, allow outgoing."""
+        try:
+            logger.info(
+                "🔐 Установка политик по умолчанию (входящие - запрещены, исходящие - разрешены)..."
+            )
+            incoming_result = run(["ufw", "default", "deny", "incoming"], check=False)
+            outgoing_result = run(["ufw", "default", "allow", "outgoing"], check=False)
+
+            if incoming_result.returncode != 0 or outgoing_result.returncode != 0:
+                logger.error("❌ Не удалось применить политики UFW по умолчанию")
+                return False
+
+            logger.debug("✅ Политики по умолчанию установлены")
+            return True
+        except Exception:
+            logger.exception("💥 Критическая ошибка при установке политик UFW по умолчанию")
+            return False
 
     def _is_installed(self) -> bool:
         """Проверяет, установлен ли UFW в системе."""
@@ -26,28 +44,38 @@ class UfwService:
         """Проверяет, установлен ли UFW в системе (публичный метод)."""
         return self._is_installed()
 
+    def is_active(self) -> bool:
+        """Проверяет, включён ли UFW (публичный метод)."""
+        return self._is_active()
+
+    def ensure_safe_baseline(self) -> bool:
+        """Гарантирует безопасную базовую конфигурацию UFW для серверных сценариев."""
+        if not self._ensure_default_policies():
+            return False
+
+        if not self._ensure_ssh_allowed():
+            logger.error("❌ Не удалось гарантировать правило SSH")
+            return False
+
+        return True
+
     def install(self) -> bool:
         """Устанавливает межсетевой экран UFW с включенным базовым правилом SSH."""
         try:
             logger.info("🔥 Начало установки UFW...")
 
+            # Check if already installed
+            if self.is_installed():
+                logger.info("✅ UFW уже установлен 🎉")
+
+                # Для уже установленного UFW считаем install() идемпотентной операцией.
+                # Дополнительно нормализуем безопасную базовую конфигурацию.
+                return self.ensure_safe_baseline()
+
             # Check for root privileges
             if os.geteuid() != 0:
                 logger.error("🔐 Для установки UFW требуются права суперпользователя")
                 return False
-
-            # Check if already installed
-            if self._is_installed():
-                logger.info("✅ UFW уже установлен 🎉")
-
-                # Ensure SSH port is allowed if UFW is inactive
-                self._ensure_ssh_allowed()
-                return True
-
-            # Update system
-            logger.info("🔄 Обновление системы перед установкой UFW...")
-            update_os()
-            logger.debug("✅ Система обновлена перед установкой UFW")
 
             # Install UFW
             logger.info("📦 Установка пакета UFW...")
@@ -61,16 +89,8 @@ class UfwService:
                 logger.error("❌ Failed to install UFW")
                 return False
 
-            # Set default policies (deny incoming, allow outgoing)
-            logger.info(
-                "🔐 Установка политик по умолчанию (входящие - запрещены, исходящие - разрешены)..."
-            )
-            run(["ufw", "default", "deny", "incoming"], check=False)
-            run(["ufw", "default", "allow", "outgoing"], check=False)
-            logger.debug("✅ Политики по умолчанию установлены")
-
-            # Allow SSH by default
-            self._ensure_ssh_allowed()
+            if not self.ensure_safe_baseline():
+                return False
 
             logger.info("✅ UFW успешно установлен! 🎉")
             return True
@@ -128,13 +148,14 @@ class UfwService:
 
             # Check if UFW is active
             if self._is_active():
-                logger.info("✅ UFW уже включён")
-                return True
+                logger.info("✅ UFW уже включён, проверяю базовую конфигурацию...")
+                return self.ensure_safe_baseline()
             # If not active, continue with enabling
 
-            # Ensure SSH is allowed
-            if not self._ensure_ssh_allowed():
-                logger.error("❌ Невозможно включить UFW без гарантированного доступа по SSH")
+            # Нормализуем базовые политики перед включением, чтобы не унаследовать
+            # старую конфигурацию с блокировкой исходящего трафика.
+            if not self.ensure_safe_baseline():
+                logger.error("❌ Невозможно включить UFW без безопасных политик по умолчанию")
                 return False
 
             # Enable UFW (non-interactive)
@@ -142,7 +163,17 @@ class UfwService:
             enable_result = run(["ufw", "--force", "enable"], check=False)
 
             if enable_result.returncode != 0:
-                logger.error("❌ Не удалось включить UFW")
+                # В некоторых окружениях ufw может вернуть ненулевой код,
+                # хотя фактически уже перешёл в состояние active.
+                logger.warning(
+                    f"⚠️ ufw enable вернул код {enable_result.returncode}, перепроверяю статус..."
+                )
+                if not self._is_active():
+                    logger.error("❌ Не удалось включить UFW")
+                    return False
+
+            if not self._is_active():
+                logger.error("❌ UFW не перешёл в активное состояние после включения")
                 return False
 
             logger.info("✅ UFW включён с сохранением доступа по SSH")

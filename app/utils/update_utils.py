@@ -30,9 +30,9 @@ def update_os():
         # Успешное завершение
         logger.info("✅ ОС успешно обновлена 🎉")
 
-    except FileNotFoundError:
-        logger.error("📁 Команда не найдена (проверьте наличие apt): {e}")
-    except PermissionError:
-        logger.error("🔐 Ошибка прав доступа (требуется root?): {e}")
+    except FileNotFoundError as e:
+        logger.error(f"📁 Команда не найдена (проверьте наличие apt): {e}")
+    except PermissionError as e:
+        logger.error(f"🔐 Ошибка прав доступа (требуется root?): {e}")
     except Exception:
         logger.exception("💥 Критическая ошибка при обновлении ОС")
