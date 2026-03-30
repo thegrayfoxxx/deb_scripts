@@ -159,18 +159,16 @@ findtime = 1h
         try:
             logger.info("🛡️ Начало установки Fail2Ban...")
 
-            # 🔍 Проверка: а может, Fail2Ban уже установлен и настроен?
-            logger.info("🔍 Проверка текущего состояния...")
+            logger.debug("🔍 Проверка текущего состояния...")
             if self._is_service_installed():
                 if self._get_service_status() == "active" and self._is_jail_active(self.JAIL_NAME):
                     logger.info(f"✅ Fail2Ban уже установлен и jail '{self.JAIL_NAME}' активен 🎉")
                     return True
-                logger.info("ℹ️ Fail2Ban установлен, но требует настройки...")
+                logger.debug("ℹ️ Fail2Ban установлен, но требует настройки...")
             else:
-                logger.info("📦 Fail2Ban не установлен, начинаем установку...")
+                logger.debug("📦 Fail2Ban не установлен, начинаем установку...")
 
-            # 📦 Шаг 1: Установка пакета
-            logger.info(f"📦 Установка пакета {self.SERVICE_NAME}...")
+            logger.debug(f"📦 Установка пакета {self.SERVICE_NAME}...")
             install_result = run(["apt", "install", self.SERVICE_NAME, "-y"], check=False)
             logger.debug(f"📋 apt install вывод:\n{install_result.stdout.strip()}")
 
@@ -179,8 +177,7 @@ findtime = 1h
                 return False
             logger.debug("✅ Пакет fail2ban установлен")
 
-            # 📝 Шаг 2: Создание конфигурации jail
-            logger.info("📝 Создание конфигурации для защиты SSH...")
+            logger.debug("📝 Создание конфигурации для защиты SSH...")
             if not self._write_config_file(
                 self.JAIL_CONFIG_PATH,
                 self.SSH_JAIL_CONFIG,
@@ -189,30 +186,26 @@ findtime = 1h
                 return False
             logger.debug(f"✅ Конфиг записан: {self.JAIL_CONFIG_PATH}")
 
-            # ⚙️ Шаг 3: Включение автозагрузки
-            logger.info("⚙️ Включение автозагрузки fail2ban...")
+            logger.debug("⚙️ Включение автозагрузки fail2ban...")
             enable_result = run(["systemctl", "enable", self.SERVICE_NAME], check=False)
             if enable_result.returncode == 0:
                 logger.debug("✅ Автозагрузка включена")
             else:
                 logger.warning("⚠️ Не удалось включить автозагрузку (возможно, уже включена)")
 
-            # 🔄 Шаг 4: Перезапуск службы
-            logger.info("🔄 Перезапуск службы fail2ban...")
+            logger.debug("🔄 Перезапуск службы fail2ban...")
             restart_result = run(["systemctl", "restart", self.SERVICE_NAME], check=False)
             if restart_result.returncode != 0:
                 logger.error("❌ Ошибка при перезапуске fail2ban")
                 return False
             logger.debug("✅ Служба перезапущена")
 
-            # ⏳ Шаг 5: Ожидание запуска
-            logger.info("⏳ Ожидание запуска службы...")
+            logger.debug("⏳ Ожидание запуска службы...")
             if not self._wait_for_service_status("active", max_wait=30):
                 logger.error("❌ Служба не запустилась в течение таймаута")
                 return False
 
-            # ✅ Шаг 6: Финальная проверка
-            logger.info("🔍 Финальная проверка конфигурации...")
+            logger.debug("🔍 Финальная проверка конфигурации...")
 
             status_result = run(["systemctl", "status", self.SERVICE_NAME], check=False)
             logger.debug(f"📋 systemctl status:\n{status_result.stdout.strip()}")
@@ -248,35 +241,30 @@ findtime = 1h
                     return True
             logger.warning("⚠️ Начало удаления Fail2Ban...")
 
-            # 🔍 Проверка: а установлен ли Fail2Ban вообще?
-            logger.info("🔍 Проверка наличия Fail2Ban...")
+            logger.debug("🔍 Проверка наличия Fail2Ban...")
             if not self._is_service_installed():
                 logger.info("✅ Fail2Ban не установлен, пропускаем удаление 🧹")
                 run(["rm", "-f", self.JAIL_CONFIG_PATH], check=False)
                 return True
 
-            # 🛑 Шаг 1: Остановка службы
-            logger.info("🛑 Остановка службы fail2ban...")
+            logger.debug("🛑 Остановка службы fail2ban...")
             stop_result = run(["systemctl", "stop", self.SERVICE_NAME], check=False)
             if stop_result.returncode == 0:
                 logger.debug("✅ Служба остановлена")
             else:
                 logger.warning("⚠️ Служба уже остановлена или не найдена")
 
-            # 🔌 Шаг 2: Отключение автозагрузки
-            logger.info("🔌 Отключение автозагрузки fail2ban...")
+            logger.debug("🔌 Отключение автозагрузки fail2ban...")
             disable_result = run(["systemctl", "disable", self.SERVICE_NAME], check=False)
             if disable_result.returncode == 0:
                 logger.debug("✅ Автозагрузка отключена")
             else:
                 logger.warning("⚠️ Автозагрузка уже отключена или не найдена")
 
-            # ⏳ Шаг 3: Ожидание полной остановки
-            logger.info("⏳ Ожидание полной остановки службы...")
+            logger.debug("⏳ Ожидание полной остановки службы...")
             self._wait_for_service_status("inactive", max_wait=15)
 
-            # 🗑️ Шаг 4: Удаление пакета
-            logger.info("🗑️ Удаление пакета fail2ban...")
+            logger.debug("🗑️ Удаление пакета fail2ban...")
             remove_result = run(["apt", "remove", self.SERVICE_NAME, "-y"], check=False)
             logger.debug(f"📋 apt remove вывод:\n{remove_result.stdout.strip()}")
 
@@ -285,17 +273,14 @@ findtime = 1h
             elif remove_result.returncode == 100:
                 logger.info("✅ Пакет fail2ban уже удалён")
             else:
-                logger.warning(
-                    f"⚠️ Предупреждение при удалении пакета (код {remove_result.returncode})"
-                )
+                logger.warning("⚠️ Удаление пакета fail2ban завершилось с предупреждением")
+                logger.debug(f"apt remove return code: {remove_result.returncode}")
 
-            # 🧹 Шаг 5: Очистка конфигурации
-            logger.info("🧹 Очистка конфигурационных файлов...")
+            logger.debug("🧹 Очистка конфигурационных файлов...")
             run(["rm", "-f", self.JAIL_CONFIG_PATH], check=False)
             logger.debug(f"✅ Удалён конфиг {self.JAIL_CONFIG_PATH}")
 
-            # 🔍 Шаг 6: Финальная проверка
-            logger.info("🔍 Финальная проверка удаления...")
+            logger.debug("🔍 Финальная проверка удаления...")
             if not self._is_service_installed():
                 logger.info("✅ Fail2Ban полностью удалён 🧹")
                 return True

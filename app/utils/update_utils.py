@@ -9,8 +9,7 @@ def update_os():
     try:
         logger.info("🔄 Начало обновления ОС...")
 
-        # Шаг 1: Обновление списков пакетов
-        logger.info("📦 Обновление списков пакетов (apt update)...")
+        logger.debug("📦 Обновление списков пакетов (apt update)...")
         update_result = run(["apt", "update", "-y"])
         logger.debug(f"📋 apt update вывод:\n{update_result.stdout.strip()}")
 
@@ -18,8 +17,7 @@ def update_os():
             logger.error("❌ Ошибка при обновлении списков пакетов")
             return
 
-        # Шаг 2: Установка обновлений
-        logger.info("⬇️ Установка обновлений (apt upgrade)...")
+        logger.debug("⬇️ Установка обновлений (apt upgrade)...")
         upgrade_result = run(["apt", "upgrade", "-y"])
         logger.debug(f"📋 apt upgrade вывод:\n{upgrade_result.stdout.strip()}")
 

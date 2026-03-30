@@ -106,8 +106,7 @@ class TestTrafficGuardService:
         """Тест ожидания статуса службы с успешным результатом"""
         # Return valid status on second call
         mock_get_status.side_effect = [None, "active", "active"]
-        # Set up time mocks: time.time called twice per loop iteration
-        mock_time.side_effect = [0, 0, 1, 1, 2, 2]  # Time progression
+        mock_time.side_effect = list(range(20))
 
         result = self.service._wait_for_service_status("active", max_wait=5, poll_interval=1)
 
@@ -176,7 +175,11 @@ class TestTrafficGuardService:
     @patch("app.services.traffic_guard.TrafficGuardService._setup_firewall_safety")
     @patch("os.chmod")
     @patch("pathlib.Path.exists")
-    @patch("builtins.open", new_callable=mock_open, read_data="echo install\n/opt/trafficguard-manager.sh monitor\n")
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data="echo install\n/opt/trafficguard-manager.sh monitor\n",
+    )
     @patch("os.remove")
     @patch("app.services.traffic_guard.TrafficGuardService._wait_for_service_status")
     @patch("app.services.traffic_guard.run")
@@ -224,6 +227,7 @@ class TestTrafficGuardService:
         # Since we're testing a complex flow, it's sufficient to check that key methods were called
         mock_check_root.assert_called_once()
         mock_is_installed.assert_called_once()
+
     @patch("app.services.traffic_guard.TrafficGuardService._check_root")
     @patch("app.services.traffic_guard.TrafficGuardService._is_trafficguard_installed")
     @patch("app.services.traffic_guard.TrafficGuardService._setup_firewall_safety")
@@ -346,7 +350,11 @@ class TestTrafficGuardService:
     @patch("pathlib.Path.exists")
     def test_setup_firewall_safety_with_ufw_not_installed(self, mock_path_exists, mock_run):
         """Тест установки защиты брандмауэра когда UFW не установлен"""
-        mock_run.side_effect = [Mock(returncode=1), Mock(returncode=0, stdout="Status: active\n"), Mock(returncode=0, stdout="22/tcp\n")]
+        mock_run.side_effect = [
+            Mock(returncode=1),
+            Mock(returncode=0, stdout="Status: active\n"),
+            Mock(returncode=0, stdout="22/tcp\n"),
+        ]
 
         with patch("app.services.traffic_guard.UfwService") as mock_ufw_cls:
             mock_ufw = mock_ufw_cls.return_value

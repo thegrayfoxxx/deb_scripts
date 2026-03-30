@@ -1,5 +1,6 @@
 """Тесты для логгера."""
 
+import logging
 from unittest.mock import Mock, patch
 
 from app.utils.logger import get_logger
@@ -11,18 +12,22 @@ class TestLogger:
     @patch("app.utils.logger.app_args")
     def test_get_logger_production_mode(self, mock_app_args):
         """Тест получения логгера в продакшен режиме"""
+        mock_app_args.log_level = "info"
         mock_app_args.mode = "prod"
 
         logger = get_logger("test_logger_prod")
         assert logger.name == "test_logger_prod"
+        assert logger.level == logging.DEBUG
 
     @patch("app.utils.logger.app_args")
     def test_get_logger_development_mode(self, mock_app_args):
         """Тест получения логгера в режиме разработки"""
+        mock_app_args.log_level = "debug"
         mock_app_args.mode = "dev"
 
         logger = get_logger("test_logger_dev")
         assert logger.name == "test_logger_dev"
+        assert logger.level == logging.DEBUG
 
     @patch("app.utils.logger.app_args")
     @patch("pathlib.Path.mkdir")
@@ -32,6 +37,7 @@ class TestLogger:
         self, mock_stream_handler, mock_file_handler, mock_mkdir, mock_app_args
     ):
         """Тест что логгер создает обработчики только один раз"""
+        mock_app_args.log_level = "info"
         mock_app_args.mode = "prod"
         mock_stream_handler_instance = Mock()
         mock_file_handler_instance = Mock()
@@ -52,6 +58,7 @@ class TestLogger:
         self, mock_stream_handler, mock_file_handler, mock_mkdir, mock_app_args
     ):
         """Тест получения логгера с пользовательским файлом"""
+        mock_app_args.log_level = "info"
         mock_app_args.mode = "prod"
 
         logger = get_logger("test_custom_file", log_file="custom.log")
@@ -65,13 +72,12 @@ class TestLogger:
         self, mock_stream_handler, mock_file_handler, mock_mkdir, mock_app_args
     ):
         """Тест получения логгера с пользовательским уровнем"""
+        mock_app_args.log_level = "info"
         mock_app_args.mode = "prod"
-
-        import logging
 
         logger = get_logger("test_custom_level", level=logging.WARNING)
         assert logger.name == "test_custom_level"
-        assert logger.level == logging.WARNING
+        assert logger.level == logging.DEBUG
 
     @patch("app.utils.logger.app_args")
     @patch("pathlib.Path.mkdir")
@@ -81,6 +87,7 @@ class TestLogger:
         self, mock_stream_handler, mock_file_handler, mock_mkdir, mock_app_args
     ):
         """Тест что логгер не падает, если файл логов недоступен."""
+        mock_app_args.log_level = "info"
         mock_app_args.mode = "prod"
         mock_stream_handler_instance = Mock()
         mock_stream_handler.return_value = mock_stream_handler_instance

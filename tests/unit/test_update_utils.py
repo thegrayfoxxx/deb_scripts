@@ -33,8 +33,8 @@ class TestUpdateUtils:
 
             # Проверяем, что были вызваны логи
             mock_logger.info.assert_any_call("🔄 Начало обновления ОС...")
-            mock_logger.info.assert_any_call("📦 Обновление списков пакетов (apt update)...")
-            mock_logger.info.assert_any_call("⬇️ Установка обновлений (apt upgrade)...")
+            mock_logger.debug.assert_any_call("📦 Обновление списков пакетов (apt update)...")
+            mock_logger.debug.assert_any_call("⬇️ Установка обновлений (apt upgrade)...")
             mock_logger.info.assert_any_call("✅ ОС успешно обновлена 🎉")
 
     def test_update_os_update_failed(self, mock_subprocess_result):
@@ -56,7 +56,7 @@ class TestUpdateUtils:
 
             # Проверяем, что были вызваны соответствующие логи
             mock_logger.info.assert_any_call("🔄 Начало обновления ОС...")
-            mock_logger.info.assert_any_call("📦 Обновление списков пакетов (apt update)...")
+            mock_logger.debug.assert_any_call("📦 Обновление списков пакетов (apt update)...")
             mock_logger.error.assert_any_call("❌ Ошибка при обновлении списков пакетов")
 
     def test_update_os_upgrade_failed(self, mock_subprocess_result):
@@ -81,8 +81,8 @@ class TestUpdateUtils:
 
             # Проверяем, что были вызваны соответствующие логи
             mock_logger.info.assert_any_call("🔄 Начало обновления ОС...")
-            mock_logger.info.assert_any_call("📦 Обновление списков пакетов (apt update)...")
-            mock_logger.info.assert_any_call("⬇️ Установка обновлений (apt upgrade)...")
+            mock_logger.debug.assert_any_call("📦 Обновление списков пакетов (apt update)...")
+            mock_logger.debug.assert_any_call("⬇️ Установка обновлений (apt upgrade)...")
             mock_logger.error.assert_any_call("❌ Ошибка при установке обновлений")
 
     def test_update_os_file_not_found_error(self):

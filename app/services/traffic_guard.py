@@ -36,11 +36,7 @@ class TrafficGuardService:
         version_result = run(self.TG_VERSION_CMD, check=False)
         version = version_result.stdout.strip() if version_result.returncode == 0 else "unknown"
         service_status = self._get_service_status() or "unknown"
-        return (
-            "TrafficGuard: installed\n"
-            f"Version: {version}\n"
-            f"Service status: {service_status}"
-        )
+        return f"TrafficGuard: installed\nVersion: {version}\nService status: {service_status}"
 
     # 🔧 Константы: имена сервисов и пути
     INSTALL_SCRIPT_URL = "https://raw.githubusercontent.com/DonMatteoVPN/TrafficGuard-auto/refs/heads/main/install-trafficguard.sh"
@@ -62,7 +58,7 @@ class TrafficGuardService:
 
     def _setup_firewall_safety(self) -> bool:
         """Настраивает базовые правила фаервола для безопасной установки"""
-        logger.info("🔐 Проверка межсетевого экрана перед установкой TrafficGuard...")
+        logger.debug("🔐 Проверка межсетевого экрана перед установкой TrafficGuard...")
 
         # UfwService остаётся точкой интеграции, но часть проверок делаем локально,
         # чтобы можно было безопасно использовать метод в тестовой среде.
@@ -71,22 +67,26 @@ class TrafficGuardService:
         try:
             ufw_check = run(["which", "ufw"], check=False)
             if ufw_check.returncode != 0:
-                logger.info("📦 UFW межсетевой экран не установлен, выполняю установку...")
+                logger.info("📦 Устанавливаю UFW для безопасной установки TrafficGuard...")
                 if not ufw_service.install():
-                    logger.error("❌ Не удалось установить UFW для безопасной установки TrafficGuard")
+                    logger.error(
+                        "❌ Не удалось установить UFW для безопасной установки TrafficGuard"
+                    )
                     return False
 
             status_result = run(["ufw", "status"], check=False)
             is_active = "status: active" in status_result.stdout.lower()
 
             if not is_active:
-                logger.info("🔐 UFW установлен, но выключен. Включаю с правилом SSH...")
+                logger.info(
+                    "🔐 Включаю UFW с безопасным SSH-правилом перед установкой TrafficGuard..."
+                )
                 if not ufw_service.enable_with_ssh_only():
                     logger.error("❌ Не удалось включить UFW перед установкой TrafficGuard")
                     return False
                 return True
 
-            logger.info("🔐 UFW уже активен, проверяю базовую конфигурацию перед установкой...")
+            logger.debug("🔐 UFW уже активен, проверяю базовую конфигурацию перед установкой...")
             if not ufw_service.ensure_safe_baseline():
                 logger.error("❌ UFW активен, но безопасная базовая конфигурация не подтверждена")
                 return False
@@ -185,14 +185,14 @@ class TrafficGuardService:
             if not self._check_root():
                 return False
 
-            logger.info("🔍 Проверка текущего состояния TrafficGuard...")
+            logger.debug("🔍 Проверка текущего состояния TrafficGuard...")
             if self._is_trafficguard_installed():
                 result = run(self.TG_VERSION_CMD, check=False)
                 version = result.stdout.strip() if result.returncode == 0 else "unknown"
                 logger.info(f"✅ TrafficGuard уже установлен: {version} 🎉")
                 return True
 
-            logger.info("📦 Установка необходимых зависимостей для TrafficGuard...")
+            logger.debug("📦 Установка необходимых зависимостей для TrafficGuard...")
             deps = [
                 "curl",
                 "wget",
@@ -210,7 +210,7 @@ class TrafficGuardService:
                 logger.error("❌ Требуется активный UFW для безопасной установки TrafficGuard")
                 return False
 
-            logger.info("⬇️ Загрузка официального установочного скрипта TrafficGuard...")
+            logger.info("⬇️ Запуск официального установщика TrafficGuard...")
             script_path = "/tmp/install-trafficguard.sh"
 
             dl = run(
@@ -235,7 +235,7 @@ class TrafficGuardService:
             os.chmod(script_path, 0o755)
             logger.debug(f"✅ Скрипт загружен: {script_path}")
 
-            logger.info(
+            logger.debug(
                 "🔧 Патчим скрипт: отключаем интерактивное меню для неинтерактивной установки..."
             )
             with open(script_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -255,7 +255,7 @@ class TrafficGuardService:
             with open(script_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(patched_lines) + "\n")
 
-            logger.info("🔧 Запуск установки TrafficGuard в неинтерактивном режиме...")
+            logger.debug("🔧 Запуск установки TrafficGuard в неинтерактивном режиме...")
 
             install_result = subprocess.run(
                 ["bash", script_path, "install"],
@@ -277,17 +277,18 @@ class TrafficGuardService:
             if install_result.returncode == 0:
                 logger.debug("✅ Скрипт завершён успешно")
             else:
-                logger.warning(f"⚠️ Скрипт вернул код {install_result.returncode}")
+                logger.warning("⚠️ Установщик TrafficGuard завершился с предупреждением")
+                logger.debug(f"TrafficGuard installer return code: {install_result.returncode}")
                 if "АВАРИЙНАЯ ОСТАНОВКА" in output or "UFW" in output:
                     logger.error("🔐 Ошибка фаервола: проверь правила SSH")
 
             if Path(script_path).exists():
                 os.remove(script_path)
 
-            logger.info("⏳ Проверка запуска службы TrafficGuard...")
+            logger.debug("⏳ Проверка запуска службы TrafficGuard...")
             self._wait_for_service_status("active", max_wait=30)
 
-            logger.info("🔍 Финальная проверка установки TrafficGuard...")
+            logger.debug("🔍 Финальная проверка установки TrafficGuard...")
             checks = {
                 "command": run(self.TG_VERSION_CMD, check=False).returncode == 0,
                 "service": self._get_service_status() in ("active", "inactive"),
@@ -298,8 +299,8 @@ class TrafficGuardService:
 
             if any(checks.values()):
                 logger.info("✅ TrafficGuard успешно установлен! 🛡️🎉")
-                logger.info("💡 Для запуска интерактивного меню: rknpidor")
-                logger.info("💡 Для проверки статуса: systemctl status antiscan-aggregate")
+                logger.debug("💡 Для запуска интерактивного меню: rknpidor")
+                logger.debug("💡 Для проверки статуса: systemctl status antiscan-aggregate")
                 return True
 
             logger.error("❌ Установка не удалась — ни один индикатор не сработал")
@@ -338,23 +339,23 @@ class TrafficGuardService:
                 logger.info("✅ TrafficGuard не установлен, пропускаем удаление 🧹")
                 return True
 
-            logger.info("🛑 Остановка службы antiscan-aggregate...")
+            logger.debug("🛑 Остановка службы antiscan-aggregate...")
             run(["systemctl", "stop", self.SERVICE_NAME], check=False)
             run(["systemctl", "stop", self.TIMER_NAME], check=False)
 
-            logger.info("🔌 Отключение автозагрузки службы TrafficGuard...")
+            logger.debug("🔌 Отключение автозагрузки службы TrafficGuard...")
             run(["systemctl", "disable", self.SERVICE_NAME], check=False)
             run(["systemctl", "disable", self.TIMER_NAME], check=False)
 
             if Path(self.MANAGER_PATH).exists():
-                logger.info("🔧 Запуск процесса удаления через встроенный менеджер...")
+                logger.debug("🔧 Запуск процесса удаления через встроенный менеджер...")
                 subprocess.run(
                     ["bash", self.MANAGER_PATH, "uninstall"],
                     timeout=60,
                     env={"DEBIAN_FRONTEND": "noninteractive"},
                 )
 
-            logger.info("🧹 Очистка всех файлов и конфигураций TrafficGuard...")
+            logger.debug("🧹 Очистка всех файлов и конфигураций TrafficGuard...")
             paths_to_remove = [
                 self.BINARY_PATH,
                 self.LINK_PATH,
@@ -377,7 +378,7 @@ class TrafficGuardService:
             run(["systemctl", "daemon-reload"], check=False)
             run(["systemctl", "restart", "rsyslog"], check=False)
 
-            logger.info("🔍 Финальная проверка полного удаления TrafficGuard...")
+            logger.debug("🔍 Финальная проверка полного удаления TrafficGuard...")
             if not self._is_trafficguard_installed():
                 logger.info("✅ TrafficGuard полностью удалён из системы 🧹")
                 return True

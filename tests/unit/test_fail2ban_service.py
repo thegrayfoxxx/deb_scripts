@@ -113,7 +113,7 @@ class TestFail2BanService:
     @patch("app.services.fail2ban.Fail2BanService._get_service_status")
     def test_wait_for_service_status_success(self, mock_get_status, mock_time, mock_sleep):
         mock_get_status.return_value = "active"
-        mock_time.side_effect = [0, 0, 0.5]
+        mock_time.side_effect = list(range(20))
 
         result = self.service._wait_for_service_status("active", max_wait=5, poll_interval=0.5)
 

@@ -12,7 +12,7 @@ class UfwService:
     def _ensure_default_policies(self) -> bool:
         """Применяет безопасные политики по умолчанию: deny incoming, allow outgoing."""
         try:
-            logger.info(
+            logger.debug(
                 "🔐 Установка политик по умолчанию (входящие - запрещены, исходящие - разрешены)..."
             )
             incoming_result = run(["ufw", "default", "deny", "incoming"], check=False)
@@ -77,13 +77,13 @@ class UfwService:
                 logger.error("🔐 Для установки UFW требуются права суперпользователя")
                 return False
 
-            # Install UFW
-            logger.info("📦 Установка пакета UFW...")
+            logger.debug("📦 Установка пакета UFW...")
             install_result = run(["apt", "install", "-y", "ufw"], check=False)
             if install_result.returncode == 0:
                 logger.debug("✅ Пакет UFW успешно установлен")
             else:
-                logger.warning(f"⚠️ apt install вернул код {install_result.returncode}")
+                logger.warning("⚠️ Установка пакета UFW завершилась с предупреждением")
+                logger.debug(f"apt install ufw return code: {install_result.returncode}")
 
             if install_result.returncode != 0:
                 logger.error("❌ Failed to install UFW")
@@ -115,7 +115,7 @@ class UfwService:
                 return True
 
             # Add SSH rule
-            logger.info("🔒 Добавление правила SSH (порт 22) для обеспечения безопасности...")
+            logger.debug("🔒 Добавление правила SSH (порт 22) для обеспечения безопасности...")
             allow_ssh_result = run(["ufw", "allow", "ssh"], check=False)
 
             if allow_ssh_result.returncode != 0:
@@ -125,7 +125,7 @@ class UfwService:
                     logger.warning("⚠️ Не удалось добавить правило SSH")
                     return False
 
-            logger.info("✅ Правило SSH успешно добавлено")
+            logger.debug("✅ Правило SSH успешно добавлено")
             return True
 
         except Exception as e:
@@ -159,15 +159,14 @@ class UfwService:
                 return False
 
             # Enable UFW (non-interactive)
-            logger.info("🔥 Включение межсетевого экрана UFW в неинтерактивном режиме...")
+            logger.debug("🔥 Включение межсетевого экрана UFW в неинтерактивном режиме...")
             enable_result = run(["ufw", "--force", "enable"], check=False)
 
             if enable_result.returncode != 0:
                 # В некоторых окружениях ufw может вернуть ненулевой код,
                 # хотя фактически уже перешёл в состояние active.
-                logger.warning(
-                    f"⚠️ ufw enable вернул код {enable_result.returncode}, перепроверяю статус..."
-                )
+                logger.warning("⚠️ ufw enable завершился с предупреждением, перепроверяю статус...")
+                logger.debug(f"ufw enable return code: {enable_result.returncode}")
                 if not self._is_active():
                     logger.error("❌ Не удалось включить UFW")
                     return False
@@ -199,7 +198,7 @@ class UfwService:
 
             success_count = 0
             for port, description in common_ports:
-                logger.info(f"🌐 Открытие порта {description} ({port}) в межсетевом экране...")
+                logger.debug(f"🌐 Открытие порта {description} ({port}) в межсетевом экране...")
                 result = run(["ufw", "allow", port], check=False)
 
                 if result.returncode == 0:
@@ -251,11 +250,11 @@ class UfwService:
     def open_port(self, port: str) -> bool:
         """Открывает конкретный порт в UFW."""
         try:
-            logger.info(f"🌐 Открытие порта {port}...")
+            logger.debug(f"🌐 Открытие порта {port}...")
             result = run(["ufw", "allow", port], check=False)
 
             if result.returncode == 0:
-                logger.info(f"✅ Порт {port} успешно открыт")
+                logger.debug(f"✅ Порт {port} успешно открыт")
                 return True
             else:
                 logger.warning(f"⚠️ Не удалось открыть порт {port}")
