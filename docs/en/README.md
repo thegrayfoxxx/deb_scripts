@@ -7,9 +7,9 @@
 The project provides a unified interface for:
 
 - configuring `UFW`
-- enabling `BBR`
+- installing, enabling, and disabling `BBR`
 - installing and removing `Docker`
-- installing and configuring `Fail2Ban`
+- installing, activating, and removing `Fail2Ban`
 - installing and removing `TrafficGuard`
 - installing and removing `uv`
 
@@ -37,16 +37,30 @@ sudo python3 main.py
 Arguments:
 
 - `--log-level {debug,info,warning,error}`
-- `--install <codes...>`
-- `--uninstall <codes...>`
+- `--install [codes...]`
+- `--uninstall [codes...]`
+- `--activate [codes...]`
+- `--deactivate [codes...]`
+- `--status [codes...]`
+- `--info [codes...]`
+- `--all`
 
 Examples:
 
 ```bash
 sudo ./run.sh --install 1 2 3
 sudo ./run.sh --uninstall 3 4
+sudo ./run.sh --activate 1 2 4
+sudo ./run.sh --status --all
+sudo ./run.sh --info 1 4 6
 sudo ./run.sh --log-level debug --install 2 4
 ```
+
+Notes:
+
+- use `--all` with one explicit non-interactive operation, for example `--status --all`
+- activatable services are `UFW`, `BBR`, and `Fail2Ban`
+- `Docker`, `TrafficGuard`, and `UV` support install/uninstall plus `status/info`
 
 ## Service codes
 
@@ -65,7 +79,7 @@ Installs, safely enables, resets, and removes the firewall.
 
 ### BBR
 
-Enables and disables `TCP BBR congestion control`.
+Prepares configuration, enables, and disables `TCP BBR congestion control`.
 
 ### Docker
 
@@ -73,7 +87,7 @@ Installs and fully removes `Docker Engine`.
 
 ### Fail2Ban
 
-Installs and configures an SSH jail for brute-force protection.
+Installs, activates, and configures an SSH jail for brute-force protection.
 
 ### TrafficGuard
 
@@ -89,6 +103,13 @@ Installs and removes the modern Python package manager `uv`.
 - detailed logs are written to `app.log` when available
 - `DEBUG` is intended for diagnostics and internal telemetry
 - `INFO` is intended for readable operator-facing output
+
+## OS updates
+
+The tool no longer performs an unconditional `apt update` on every start.
+
+- `apt update` is skipped when the last successful package-list refresh is newer than `6` hours
+- `apt upgrade` runs only when `apt list --upgradable` reports real packages to upgrade
 
 ## Development
 
@@ -122,6 +143,6 @@ docker compose run --rm test pytest -q --cov=app --cov=main --cov-report=term-mi
 
 Latest full run:
 
-- `345 passed`
+- `375 passed`
 - `6 skipped`
-- coverage: `92%`
+- coverage: `91%`

@@ -9,9 +9,9 @@ Python toolkit for automating common DevOps tasks on `apt`-based Linux systems.
 ## What it does
 
 - manages `UFW`
-- enables and disables `BBR`
+- installs, enables, and disables `BBR`
 - installs and removes `Docker`
-- installs and configures `Fail2Ban`
+- installs, activates, and removes `Fail2Ban`
 - installs and removes `TrafficGuard`
 - installs and removes `uv`
 
@@ -36,8 +36,34 @@ Requirements:
 ```bash
 sudo ./run.sh --install 1 2 3
 sudo ./run.sh --uninstall 3 4
+sudo ./run.sh --activate 1 2 4
+sudo ./run.sh --status --all
+sudo ./run.sh --info 1 4 6
 sudo ./run.sh --log-level debug --install 2 4
 ```
+
+Supported non-interactive flags:
+
+- `--install [codes...]`
+- `--uninstall [codes...]`
+- `--activate [codes...]`
+- `--deactivate [codes...]`
+- `--status [codes...]`
+- `--info [codes...]`
+- `--all`
+
+Notes:
+
+- use `--all` with one non-interactive operation, for example `--status --all`
+- activatable services are `UFW`, `BBR`, and `Fail2Ban`
+- `TrafficGuard`, `Docker`, and `UV` support install/uninstall plus status/info
+
+## Update behavior
+
+On startup the tool checks whether the package index is still fresh.
+
+- `apt update` is skipped if the last successful update is newer than `6` hours
+- `apt upgrade` runs only when `apt list --upgradable` reports real packages to upgrade
 
 Service codes:
 
@@ -64,9 +90,9 @@ The language-specific docs contain setup, usage, logging, development, and testi
 
 Latest full run:
 
-- `345 passed`
+- `375 passed`
 - `6 skipped`
-- coverage: `92%`
+- coverage: `91%`
 
 ## License
 

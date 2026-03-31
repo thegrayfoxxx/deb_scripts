@@ -7,9 +7,9 @@
 Проект предоставляет единый интерфейс для:
 
 - настройки `UFW`
-- включения `BBR`
+- установки, включения и отключения `BBR`
 - установки и удаления `Docker`
-- установки и настройки `Fail2Ban`
+- установки, активации и удаления `Fail2Ban`
 - установки и удаления `TrafficGuard`
 - установки и удаления `uv`
 
@@ -37,16 +37,30 @@ sudo python3 main.py
 Аргументы:
 
 - `--log-level {debug,info,warning,error}`
-- `--install <codes...>`
-- `--uninstall <codes...>`
+- `--install [codes...]`
+- `--uninstall [codes...]`
+- `--activate [codes...]`
+- `--deactivate [codes...]`
+- `--status [codes...]`
+- `--info [codes...]`
+- `--all`
 
 Примеры:
 
 ```bash
 sudo ./run.sh --install 1 2 3
 sudo ./run.sh --uninstall 3 4
+sudo ./run.sh --activate 1 2 4
+sudo ./run.sh --status --all
+sudo ./run.sh --info 1 4 6
 sudo ./run.sh --log-level debug --install 2 4
 ```
+
+Примечания:
+
+- `--all` применяется к одной явно указанной non-interactive операции, например `--status --all`
+- сервисы с отдельной активацией: `UFW`, `BBR`, `Fail2Ban`
+- `Docker`, `TrafficGuard` и `UV` поддерживают установку/удаление, а также `status/info`
 
 ## Коды сервисов
 
@@ -65,7 +79,7 @@ sudo ./run.sh --log-level debug --install 2 4
 
 ### BBR
 
-Включение и отключение `TCP BBR congestion control`.
+Подготовка конфигурации, включение и отключение `TCP BBR congestion control`.
 
 ### Docker
 
@@ -73,7 +87,7 @@ sudo ./run.sh --log-level debug --install 2 4
 
 ### Fail2Ban
 
-Установка и настройка SSH jail для защиты от brute-force.
+Установка, активация и настройка SSH jail для защиты от brute-force.
 
 ### TrafficGuard
 
@@ -89,6 +103,13 @@ sudo ./run.sh --log-level debug --install 2 4
 - подробные логи пишутся в `app.log`, если файл доступен
 - `DEBUG` предназначен для диагностики и внутренней телеметрии
 - `INFO` предназначен для понятного операторского вывода
+
+## Обновление ОС
+
+При старте приложение не делает безусловный `apt update`.
+
+- `apt update` пропускается, если последний успешный update был меньше `6` часов назад
+- `apt upgrade` выполняется только если `apt list --upgradable` показывает реальные пакеты для обновления
 
 ## Разработка
 
@@ -122,6 +143,6 @@ docker compose run --rm test pytest -q --cov=app --cov=main --cov-report=term-mi
 
 Последний полный прогон:
 
-- `345 passed`
+- `375 passed`
 - `6 skipped`
-- покрытие: `92%`
+- покрытие: `91%`
