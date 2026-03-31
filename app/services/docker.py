@@ -38,14 +38,6 @@ class DockerService:
             logger.debug("❌ Команда docker не найдена в PATH")
             return False
 
-    def install(self) -> bool:
-        """Единая точка входа для установки Docker."""
-        return self.install_docker()
-
-    def uninstall(self, confirm: bool = False) -> bool:
-        """Единая точка входа для удаления Docker."""
-        return self.uninstall_docker(confirm=confirm)
-
     def is_installed(self) -> bool:
         """Проверяет, установлен ли Docker."""
         return bool(self._get_docker_version())
@@ -64,7 +56,7 @@ class DockerService:
         """Возвращает краткую информацию о сервисе для интерактивного UI."""
         return self.INFO_LINES
 
-    def install_docker(self) -> bool:
+    def install(self) -> bool:
         """Устанавливает Docker Engine"""
         try:
             logger.info("🐳 Начало установки Docker Engine...")
@@ -119,7 +111,7 @@ class DockerService:
             logger.exception("💥 Критическая ошибка при установке Docker")
             return False
 
-    def uninstall_docker(self, confirm: bool = False) -> bool:
+    def uninstall(self, confirm: bool = False) -> bool:
         """Полностью удаляет Docker Engine и данные (идемпотентно)"""
         try:
             if confirm:

@@ -13,7 +13,12 @@ def run(command: list[str], check: bool = True, **kwargs) -> subprocess.Complete
         if check:
             raise
         # Если check=False, возвращаем результат с ошибкой
-        return e
+        return subprocess.CompletedProcess(
+            args=e.cmd,
+            returncode=e.returncode,
+            stdout=e.stdout,
+            stderr=e.stderr,
+        )
 
 
 def is_command_available(cmd: str) -> bool:

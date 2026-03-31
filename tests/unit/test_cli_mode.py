@@ -52,9 +52,7 @@ def test_run_non_interactive_mixed_operations():
         "app.interfaces.cli.non_interactive.get_service_entry",
         side_effect=lambda code: entries.get(code),
     ):
-        result = run_non_interactive_commands(
-            _make_args(install=["2"], uninstall=["3"])
-        )
+        result = run_non_interactive_commands(_make_args(install=["2"], uninstall=["3"]))
 
     assert result is True
     install_service.install.assert_called_once()
@@ -63,32 +61,24 @@ def test_run_non_interactive_mixed_operations():
 
 def test_run_non_interactive_invalid_service_code_install():
     with (
-        patch(
-            "app.interfaces.cli.non_interactive.get_service_entry", return_value=None
-        ),
+        patch("app.interfaces.cli.non_interactive.get_service_entry", return_value=None),
         patch("app.interfaces.cli.non_interactive.logger") as mock_logger,
     ):
         result = run_non_interactive_commands(_make_args(install=["99"]))
 
     assert result is False
-    mock_logger.error.assert_called_once_with(
-        "❌ Неизвестный код сервиса для установки: 99"
-    )
+    mock_logger.error.assert_called_once_with("❌ Неизвестный код сервиса для установки: 99")
 
 
 def test_run_non_interactive_invalid_service_code_uninstall():
     with (
-        patch(
-            "app.interfaces.cli.non_interactive.get_service_entry", return_value=None
-        ),
+        patch("app.interfaces.cli.non_interactive.get_service_entry", return_value=None),
         patch("app.interfaces.cli.non_interactive.logger") as mock_logger,
     ):
         result = run_non_interactive_commands(_make_args(uninstall=["99"]))
 
     assert result is False
-    mock_logger.error.assert_called_once_with(
-        "❌ Неизвестный код сервиса для удаления: 99"
-    )
+    mock_logger.error.assert_called_once_with("❌ Неизвестный код сервиса для удаления: 99")
 
 
 def test_run_non_interactive_returns_false_when_service_returns_false():
@@ -132,9 +122,7 @@ def test_run_non_interactive_install_and_uninstall_same_service():
         "app.interfaces.cli.non_interactive.get_service_entry",
         return_value=_make_entry(service),
     ):
-        result = run_non_interactive_commands(
-            _make_args(install=["2"], uninstall=["2"])
-        )
+        result = run_non_interactive_commands(_make_args(install=["2"], uninstall=["2"]))
 
     assert result is True
     service.install.assert_called_once()

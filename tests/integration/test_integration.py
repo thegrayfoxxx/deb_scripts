@@ -29,7 +29,7 @@ class TestIntegration:
             ["sysctl", "-n", "net.ipv4.tcp_congestion_control"], check=False
         )
 
-    def test_docker_install_docker_uses_expected_command_flow(self):
+    def test_docker_install_uses_expected_command_flow(self):
         service = DockerService()
 
         with patch("app.services.docker.run") as mock_run:
@@ -42,7 +42,7 @@ class TestIntegration:
                 MagicMock(returncode=0, stdout="Docker version 24.0.5, build ced0996"),
             ]
 
-            result = service.install_docker()
+            result = service.install()
 
         assert result is True
         mock_run.assert_any_call(["apt", "install", "-y", "curl"], check=False)

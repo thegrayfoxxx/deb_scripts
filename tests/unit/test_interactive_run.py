@@ -33,14 +33,10 @@ class TestInteractiveRun:
 
     @patch("builtins.input", side_effect=["00", "any_key", "0"])
     @patch("builtins.print")
-    def test_run_interactive_script_display_info_then_exit(
-        self, mock_print, mock_input
-    ):
+    def test_run_interactive_script_display_info_then_exit(self, mock_print, mock_input):
         _run_main_menu()
 
-        printed_texts = [
-            call.args[0] for call in mock_print.call_args_list if call.args
-        ]
+        printed_texts = [call.args[0] for call in mock_print.call_args_list if call.args]
         assert any("автоматизировать задачи DevOps" in text for text in printed_texts)
 
     @patch("builtins.input", side_effect=["999", "0"])
@@ -48,21 +44,15 @@ class TestInteractiveRun:
     def test_run_interactive_script_invalid_input(self, mock_print, mock_input):
         _run_main_menu()
 
-        printed_texts = [
-            call.args[0] for call in mock_print.call_args_list if call.args
-        ]
-        assert any(
-            "❌ Неверный ввод, попробуйте снова" in text for text in printed_texts
-        )
+        printed_texts = [call.args[0] for call in mock_print.call_args_list if call.args]
+        assert any("❌ Неверный ввод, попробуйте снова" in text for text in printed_texts)
 
     @patch("builtins.input", side_effect=["1", "0"])
     @patch("builtins.print")
     def test_run_interactive_script_select_ufw(self, mock_print, mock_input):
         items, actions = _menu_items_with_actions()
 
-        with patch(
-            "app.interfaces.interactive.run.build_main_menu_items", return_value=items
-        ):
+        with patch("app.interfaces.interactive.run.build_main_menu_items", return_value=items):
             _run_main_menu()
 
         actions["1"].assert_called_once()
@@ -72,9 +62,7 @@ class TestInteractiveRun:
     def test_run_interactive_script_select_bbr(self, mock_print, mock_input):
         items, actions = _menu_items_with_actions()
 
-        with patch(
-            "app.interfaces.interactive.run.build_main_menu_items", return_value=items
-        ):
+        with patch("app.interfaces.interactive.run.build_main_menu_items", return_value=items):
             _run_main_menu()
 
         actions["2"].assert_called_once()
@@ -84,9 +72,7 @@ class TestInteractiveRun:
     def test_run_interactive_script_select_docker(self, mock_print, mock_input):
         items, actions = _menu_items_with_actions()
 
-        with patch(
-            "app.interfaces.interactive.run.build_main_menu_items", return_value=items
-        ):
+        with patch("app.interfaces.interactive.run.build_main_menu_items", return_value=items):
             _run_main_menu()
 
         actions["3"].assert_called_once()
@@ -96,9 +82,7 @@ class TestInteractiveRun:
     def test_run_interactive_script_select_fail2ban(self, mock_print, mock_input):
         items, actions = _menu_items_with_actions()
 
-        with patch(
-            "app.interfaces.interactive.run.build_main_menu_items", return_value=items
-        ):
+        with patch("app.interfaces.interactive.run.build_main_menu_items", return_value=items):
             _run_main_menu()
 
         actions["4"].assert_called_once()
@@ -108,9 +92,7 @@ class TestInteractiveRun:
     def test_run_interactive_script_select_traffic_guard(self, mock_print, mock_input):
         items, actions = _menu_items_with_actions()
 
-        with patch(
-            "app.interfaces.interactive.run.build_main_menu_items", return_value=items
-        ):
+        with patch("app.interfaces.interactive.run.build_main_menu_items", return_value=items):
             _run_main_menu()
 
         actions["5"].assert_called_once()
@@ -120,9 +102,7 @@ class TestInteractiveRun:
     def test_run_interactive_script_select_uv(self, mock_print, mock_input):
         items, actions = _menu_items_with_actions()
 
-        with patch(
-            "app.interfaces.interactive.run.build_main_menu_items", return_value=items
-        ):
+        with patch("app.interfaces.interactive.run.build_main_menu_items", return_value=items):
             _run_main_menu()
 
         actions["6"].assert_called_once()

@@ -55,7 +55,7 @@ class TestUfwService:
     @patch("os.geteuid", return_value=1000)  # Non-root
     def test_install_no_root_privileges(self, mock_geteuid):
         """Test that install fails without root privileges."""
-        with patch("app.utils.logger.get_logger") as mock_logger:
+        with patch("app.utils.logger.get_logger"):
             result = self.service.install()
             assert result is False
 
@@ -101,14 +101,12 @@ class TestUfwService:
         mock_run.side_effect = side_effect
 
         # Mock is_installed to return False initially, then True
-        original_is_installed = self.service.is_installed
+        call_state = {"count": 0}
 
         def mock_is_installed():
-            if not hasattr(mock_is_installed, "call_count"):
-                mock_is_installed.call_count = 0
-            mock_is_installed.call_count += 1
+            call_state["count"] += 1
             # Return False on first call (before install), True on subsequent calls
-            return mock_is_installed.call_count > 1
+            return call_state["count"] > 1
 
         with patch.object(self.service, "is_installed", side_effect=mock_is_installed):
             result = self.service.install()
@@ -152,12 +150,10 @@ class TestUfwService:
         mock_run.side_effect = side_effect
 
         # Mock is_installed to return False initially, then still False after attempted install
-        original_is_installed = self.service.is_installed
+        call_state = {"count": 0}
 
         def mock_is_installed():
-            if not hasattr(mock_is_installed, "call_count"):
-                mock_is_installed.call_count = 0
-            mock_is_installed.call_count += 1
+            call_state["count"] += 1
             # Return False both before and after attempted install
             return False
 
@@ -210,7 +206,9 @@ class TestUfwService:
         mock_run.side_effect = side_effect
 
         result = self.service.get_status()
-        assert result == "error"  # Should return "error" on exception
+        assert "Статус установки: 🔴 не установлен" in result
+        assert "Статус активации: 🔴 не активирован" in result
+        assert "Вывод ufw status: ошибка получения статуса" in result
 
     @patch("os.geteuid", return_value=1000)  # Non-root
     @patch("app.services.ufw.run")
@@ -444,7 +442,10 @@ class TestUfwService:
     @patch("app.services.ufw.run")
     def test_get_status_returns_unknown_on_non_zero_exit(self, mock_run):
         mock_run.return_value = Mock(returncode=1, stdout="")
-        assert self.service.get_status() == "unknown"
+        status = self.service.get_status()
+        assert "Статус установки: 🔴 не установлен" in status
+        assert "Статус активации: 🔴 не активирован" in status
+        assert "Вывод ufw status: недоступен" in status
 
     @patch("app.services.ufw.run")
     def test_enable_with_ssh_only_success(self, mock_run):
@@ -547,6 +548,7 @@ class TestUfwService:
     @patch("app.services.ufw.run")
     def test_enable_with_ssh_only_applies_safe_default_policies_before_enable(self, mock_run):
         """Test enabling UFW restores deny-incoming/allow-outgoing defaults before enable."""
+        status_state = {"calls": 0}
 
         def side_effect(cmd, check=True, **kwargs):
             result = Mock()
@@ -554,12 +556,10 @@ class TestUfwService:
             if cmd == ["which", "ufw"]:
                 result.returncode = 0
             elif cmd == ["ufw", "status"]:
-                if not hasattr(side_effect, "status_calls"):
-                    side_effect.status_calls = 0
-                side_effect.status_calls += 1
+                status_state["calls"] += 1
                 result.returncode = 0
                 result.stdout = (
-                    "Status: inactive\n" if side_effect.status_calls == 1 else "Status: active\n"
+                    "Status: inactive\n" if status_state["calls"] == 1 else "Status: active\n"
                 )
             elif cmd == ["ufw", "show", "added"]:
                 result.returncode = 0
@@ -584,8 +584,12 @@ class TestUfwService:
         result = self.service.enable_with_ssh_only()
 
         assert result is True
-        assert ["ufw", "default", "deny", "incoming"] in [call.args[0] for call in mock_run.call_args_list]
-        assert ["ufw", "default", "allow", "outgoing"] in [call.args[0] for call in mock_run.call_args_list]
+        assert ["ufw", "default", "deny", "incoming"] in [
+            call.args[0] for call in mock_run.call_args_list
+        ]
+        assert ["ufw", "default", "allow", "outgoing"] in [
+            call.args[0] for call in mock_run.call_args_list
+        ]
 
     @patch("app.services.ufw.run")
     def test_enable_with_ssh_only_already_active(self, mock_run):
@@ -650,7 +654,9 @@ class TestUfwService:
         mock_run.return_value = mock_result
 
         result = self.service.get_status()
-        assert result == expected_status.strip()
+        assert "Статус установки: 🟢 установлен" in result
+        assert "Статус активации: 🟢 активирован" in result
+        assert f"Вывод ufw status: {expected_status.strip()}" in result
 
     @patch("app.services.ufw.run")
     def test_disable_success(self, mock_run):

@@ -63,7 +63,6 @@ class TestSubprocessUtils:
 
             result = run(["echo", "hello"], check=False)
 
-            # When check=False, it should return the error object
             assert hasattr(result, "returncode")
             assert result.returncode == 1
 
@@ -74,7 +73,7 @@ class TestSubprocessUtils:
         mock_result.returncode = 0
         mock_subprocess_run.return_value = mock_result
 
-        result = run(["echo", "hello"], check=True, timeout=10)
+        run(["echo", "hello"], check=True, timeout=10)
 
         mock_subprocess_run.assert_called_once_with(
             args=["echo", "hello"], check=True, text=True, capture_output=True, timeout=10
@@ -96,7 +95,7 @@ class TestSubprocessUtils:
         """Тест проверки доступности команды при её отсутствии (ненулевой код возврата)"""
         with patch("app.utils.subprocess_utils.run") as mock_run:
             mock_result = Mock()
-            mock_result.returncode = 1  # Command exists but version check fails
+            mock_result.returncode = 1
             mock_run.return_value = mock_result
 
             result = is_command_available("nonexistent_cmd")
@@ -126,7 +125,7 @@ class TestSubprocessUtils:
             run(["echo", "hello"], check=True)
             assert False, "Should have raised CalledProcessError"
         except CalledProcessError:
-            pass  # Expected behavior
+            pass
 
     @patch("app.utils.subprocess_utils.subprocess.run")
     def test_run_handles_text_and_capture_output_params(self, mock_subprocess_run):
@@ -135,7 +134,7 @@ class TestSubprocessUtils:
         mock_result.returncode = 0
         mock_subprocess_run.return_value = mock_result
 
-        result = run(["echo", "hello"])
+        run(["echo", "hello"])
 
         mock_subprocess_run.assert_called_once_with(
             args=["echo", "hello"], check=True, text=True, capture_output=True

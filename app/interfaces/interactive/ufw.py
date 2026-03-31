@@ -79,23 +79,6 @@ def display_ufw_submenu(service: UfwService) -> str:
     )
 
 
-def show_ufw_menu():
-    """Интерактивное меню для управления UFW."""
-    service = UfwService()
-
-    run_menu_loop(
-        title="🔥 Управление UFW (Межсетевой экран)",
-        header="Выберите действие:",
-        items_factory=lambda: _build_menu_items(service),
-        info_handler=display_ufw_info,
-        exit_handler=return_to_main_menu,
-        info_label="00 - ℹ️ Информация о UFW",
-        exit_label="0 - 🏠 Вернуться в главное меню",
-        intro_lines=["💡 По умолчанию: порт SSH (22) всегда разрешён для безопасности"],
-        invalid_message="❌ Неверная опция, пожалуйста, попробуйте снова",
-    )
-
-
 def _open_specific_ports(service):
     """Интерактивное открытие конкретных портов."""
     print("Выберите порты для открытия:")
@@ -185,4 +168,16 @@ def display_ufw_info():
 
 def interactive_run():
     """Entry point for UFW interactive mode."""
-    show_ufw_menu()
+    service = UfwService()
+
+    run_menu_loop(
+        title="🔥 Управление UFW (Межсетевой экран)",
+        header="Выберите действие:",
+        items_factory=lambda: _build_menu_items(service),
+        info_handler=display_ufw_info,
+        exit_handler=return_to_main_menu,
+        info_label="00 - ℹ️ Информация о UFW",
+        exit_label="0 - 🏠 Вернуться в главное меню",
+        intro_lines=["💡 По умолчанию: порт SSH (22) всегда разрешён для безопасности"],
+        invalid_message="❌ Неверная опция, пожалуйста, попробуйте снова",
+    )

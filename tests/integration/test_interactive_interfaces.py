@@ -173,9 +173,7 @@ class TestInteractiveInterfacesIntegration:
                 "builtins.input", side_effect=["3", "0", "0"]
             ),  # Выбираем Docker, затем выход из Docker, затем выход из главного
             patch("builtins.print"),
-            patch(
-                "app.interfaces.interactive.docker.interactive_run"
-            ) as mock_docker_run,
+            patch("app.interfaces.interactive.docker.interactive_run") as mock_docker_run,
         ):
             try:
                 run.run_interactive_script()
@@ -207,9 +205,7 @@ class TestInteractiveInterfacesIntegration:
     def test_main_menu_invalid_input(self):
         """Тест обработки неверного ввода в главном меню"""
         with (
-            patch(
-                "builtins.input", side_effect=["99", "0"]
-            ),  # Неверный ввод, затем выход
+            patch("builtins.input", side_effect=["99", "0"]),  # Неверный ввод, затем выход
             patch("builtins.print") as mock_print,
         ):
             try:
@@ -217,12 +213,8 @@ class TestInteractiveInterfacesIntegration:
             except SystemExit:
                 pass
 
-            printed_texts = [
-                call.args[0] for call in mock_print.call_args_list if call.args
-            ]
-            assert any(
-                "❌ Неверный ввод, попробуйте снова" in text for text in printed_texts
-            )
+            printed_texts = [call.args[0] for call in mock_print.call_args_list if call.args]
+            assert any("❌ Неверный ввод, попробуйте снова" in text for text in printed_texts)
 
     def test_main_menu_exit_option(self):
         """Тест опции выхода из главного меню"""
@@ -289,9 +281,7 @@ class TestInteractiveInterfacesIntegration:
                 pass  # Нормально, так как sys.exit замокан
 
             # Проверяем, что была выведена информация о Docker
-            printed_texts = [
-                call.args[0] for call in mock_print.call_args_list if call.args
-            ]
+            printed_texts = [call.args[0] for call in mock_print.call_args_list if call.args]
 
             # Проверяем, что содержится информация о Docker
             docker_info_found = any(
@@ -301,9 +291,7 @@ class TestInteractiveInterfacesIntegration:
 
             # Проверяем, что содержится ссылка на официальный сайт
             link_found = any(
-                "https://docker.com" in text
-                for text in printed_texts
-                if isinstance(text, str)
+                "https://docker.com" in text for text in printed_texts if isinstance(text, str)
             )
             assert link_found, "Official website link should be displayed"
 
@@ -363,9 +351,7 @@ class TestInteractiveInterfacesIntegration:
         mock_uv_service = Mock()
 
         with (
-            patch(
-                "app.interfaces.interactive.uv.UVService", return_value=mock_uv_service
-            ),
+            patch("app.interfaces.interactive.uv.UVService", return_value=mock_uv_service),
             patch(
                 "builtins.input", side_effect=["1", "0", "0"]
             ),  # Выбираем установку, затем выход, затем выход из главного меню
@@ -387,9 +373,7 @@ class TestInteractiveInterfacesIntegration:
         mock_uv_service = Mock()
 
         with (
-            patch(
-                "app.interfaces.interactive.uv.UVService", return_value=mock_uv_service
-            ),
+            patch("app.interfaces.interactive.uv.UVService", return_value=mock_uv_service),
             patch(
                 "builtins.input", side_effect=["2", "0", "0"]
             ),  # Выбираем удаление, затем выход, затем выход из главного меню

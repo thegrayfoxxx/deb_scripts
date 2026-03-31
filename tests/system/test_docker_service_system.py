@@ -148,9 +148,7 @@ class TestDockerSystemService:
                 # add-apt-repository может быть не установлен, это нормально
                 if tool == "add-apt-repository":
                     # Попробуем установить
-                    install_result = subprocess.run(
-                        ["apt", "update"], capture_output=True, text=True, timeout=30
-                    )
+                    subprocess.run(["apt", "update"], capture_output=True, text=True, timeout=30)
                     # Если apt update проходит, то add-apt-repository можно установить позже
                     continue
                 found_missing.append(tool)

@@ -163,7 +163,7 @@ class TestTrafficGuardService:
         mock_version_result.stdout = "TrafficGuard v1.0"
         mock_run.return_value = mock_version_result
 
-        result = self.service.install_trafficguard()
+        result = self.service.install()
 
         assert result is True
         mock_check_root.assert_called_once()
@@ -221,7 +221,7 @@ class TestTrafficGuardService:
         install_result.stdout = "Installation successful"
         mock_subprocess_run.return_value = install_result
 
-        result = self.service.install_trafficguard()
+        self.service.install()
 
         # The test should pass even if there are some errors in the process
         # Since we're testing a complex flow, it's sufficient to check that key methods were called
@@ -269,7 +269,7 @@ class TestTrafficGuardService:
         install_result.stdout = "Installation successful"
         mock_subprocess_run.return_value = install_result
 
-        result = self.service.install_trafficguard()
+        self.service.install()
 
         # Check that the firewall setup was attempted
         mock_setup_firewall.assert_called_once()
@@ -286,7 +286,7 @@ class TestTrafficGuardService:
         mock_check_root.return_value = True
         mock_is_installed.return_value = False
 
-        result = self.service.uninstall_trafficguard()
+        result = self.service.uninstall()
 
         assert result is True
         mock_check_root.assert_called_once()
@@ -320,7 +320,7 @@ class TestTrafficGuardService:
         ]
         mock_run.side_effect = side_effects
 
-        result = self.service.uninstall_trafficguard()
+        self.service.uninstall()
 
         # Just verify that key methods were called rather than expecting True/False
         mock_check_root.assert_called_once()
@@ -519,7 +519,7 @@ class TestTrafficGuardService:
         with patch("subprocess.run") as mock_subprocess_run:
             mock_subprocess_run.side_effect = subprocess.TimeoutExpired(cmd=["bash"], timeout=1)
 
-            result = self.service.install_trafficguard()
+            result = self.service.install()
 
             # Should return False when timeout occurs
             assert result is False
@@ -540,7 +540,7 @@ class TestTrafficGuardService:
         # Have subprocess.run throw PermissionError
         mock_subprocess_run.side_effect = PermissionError("Permission denied")
 
-        result = self.service.install_trafficguard()
+        result = self.service.install()
 
         # Should return False when permission error occurs
         assert result is False
@@ -585,7 +585,7 @@ class TestTrafficGuardService:
         # Have the actual installation script subprocess throw FileNotFoundError
         mock_subprocess_run.side_effect = FileNotFoundError("Command not found")
 
-        result = self.service.install_trafficguard()
+        result = self.service.install()
 
         # Should return False when file not found error occurs
         assert result is False
@@ -602,7 +602,7 @@ class TestTrafficGuardService:
         mock_is_installed.return_value = True
         mock_subprocess_run.side_effect = Exception("Critical error")
 
-        result = self.service.uninstall_trafficguard()
+        result = self.service.uninstall()
 
         # Should return False when critical error occurs
         assert result is False

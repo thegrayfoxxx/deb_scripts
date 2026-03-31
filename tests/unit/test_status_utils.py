@@ -1,8 +1,8 @@
-from app.interfaces.interactive.status_utils import menu_action_with_status
 from app.utils.status_text import (
     activation_status_badge,
     format_status_snapshot,
     installation_status_badge,
+    menu_action_with_status,
     status_badge,
 )
 

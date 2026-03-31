@@ -2,14 +2,15 @@ import logging
 import sys
 from pathlib import Path
 
-from app.utils.args_utils import app_args
-
 LOG_LEVELS = {
     "debug": logging.DEBUG,
     "info": logging.INFO,
     "warning": logging.WARNING,
     "error": logging.ERROR,
 }
+DEFAULT_CONSOLE_LEVEL = logging.INFO
+STREAM_HANDLER_CLASS = logging.StreamHandler
+FILE_HANDLER_CLASS = logging.FileHandler
 
 
 def _resolve_console_level(level: int | str | None = None) -> int:
@@ -17,13 +18,22 @@ def _resolve_console_level(level: int | str | None = None) -> int:
         return level
     if isinstance(level, str):
         return LOG_LEVELS[level.lower()]
+    return DEFAULT_CONSOLE_LEVEL
 
-    configured_level = getattr(app_args, "log_level", None)
-    if configured_level in LOG_LEVELS:
-        return LOG_LEVELS[configured_level]
 
-    mode = getattr(app_args, "mode", "prod")
-    return logging.DEBUG if mode == "dev" else logging.INFO
+def set_default_console_level(level: int | str) -> None:
+    """Обновляет уровень консольного логирования для новых и существующих логгеров."""
+    global DEFAULT_CONSOLE_LEVEL
+    DEFAULT_CONSOLE_LEVEL = _resolve_console_level(level)
+
+    for logger in logging.root.manager.loggerDict.values():
+        if not isinstance(logger, logging.Logger):
+            continue
+        for handler in logger.handlers:
+            if isinstance(handler, STREAM_HANDLER_CLASS) and not isinstance(
+                handler, FILE_HANDLER_CLASS
+            ):
+                handler.setLevel(DEFAULT_CONSOLE_LEVEL)
 
 
 def get_logger(
@@ -37,6 +47,11 @@ def get_logger(
     logger.propagate = False
 
     if logger.handlers:
+        for handler in logger.handlers:
+            if isinstance(handler, STREAM_HANDLER_CLASS) and not isinstance(
+                handler, FILE_HANDLER_CLASS
+            ):
+                handler.setLevel(console_level)
         return logger
 
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

@@ -157,7 +157,7 @@ findtime = 600
             if path_obj.exists():
                 try:
                     # Попробуем получить информацию о файле
-                    stat_info = path_obj.stat()
+                    path_obj.stat()
                     # Если файл существует, мы должны иметь возможность получить его статус
 
                     # Попробуем прочитать последние строки (если это файл)
@@ -192,9 +192,7 @@ findtime = 600
                 # add-apt-repository может быть не установлен, это нормально
                 if tool == "add-apt-repository":
                     # Попробуем установить
-                    install_result = subprocess.run(
-                        ["apt", "update"], capture_output=True, text=True, timeout=30
-                    )
+                    subprocess.run(["apt", "update"], capture_output=True, text=True, timeout=30)
                     # Если apt update проходит, то add-apt-repository можно установить позже
                     continue
                 found_missing.append(tool)

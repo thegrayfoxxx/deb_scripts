@@ -23,7 +23,6 @@ class ServiceRegistryEntry:
     main_menu_label: str
     service_import: str
     interactive_import: str
-    activatable: bool
     main_menu_status_renderer: StatusRendererFactory
 
     def service_factory(self) -> ManagedServiceProtocol:
@@ -81,7 +80,6 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         main_menu_label="1 - 🔥 UFW - uncomplicated firewall (межсетевой экран)",
         service_import="app.services.ufw.UfwService",
         interactive_import="app.interfaces.interactive.ufw.interactive_run",
-        activatable=True,
         main_menu_status_renderer=_ufw_status,
     ),
     ServiceRegistryEntry(
@@ -92,7 +90,6 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         main_menu_label="2 - 🌐 BBR (TCP Congestion Control) - ускорение сети",
         service_import="app.services.bbr.BBRService",
         interactive_import="app.interfaces.interactive.bbr.interactive_run",
-        activatable=True,
         main_menu_status_renderer=_bbr_status,
     ),
     ServiceRegistryEntry(
@@ -103,7 +100,6 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         main_menu_label="3 - 🐳 Docker - установка контейнеризации",
         service_import="app.services.docker.DockerService",
         interactive_import="app.interfaces.interactive.docker.interactive_run",
-        activatable=False,
         main_menu_status_renderer=_docker_status,
     ),
     ServiceRegistryEntry(
@@ -114,7 +110,6 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         main_menu_label="4 - 🛡️ Fail2Ban - защита от атак",
         service_import="app.services.fail2ban.Fail2BanService",
         interactive_import="app.interfaces.interactive.fail2ban.interactive_run",
-        activatable=True,
         main_menu_status_renderer=_fail2ban_status,
     ),
     ServiceRegistryEntry(
@@ -125,7 +120,6 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         main_menu_label="5 - ⚔️ TrafficGuard - комплексная защита",
         service_import="app.services.traffic_guard.TrafficGuardService",
         interactive_import="app.interfaces.interactive.traffic_guard.interactive_run",
-        activatable=False,
         main_menu_status_renderer=_traffic_guard_status,
     ),
     ServiceRegistryEntry(
@@ -136,7 +130,6 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         main_menu_label="6 - 🐍 UV - менеджер пакетов Python",
         service_import="app.services.uv.UVService",
         interactive_import="app.interfaces.interactive.uv.interactive_run",
-        activatable=False,
         main_menu_status_renderer=_uv_status,
     ),
 )

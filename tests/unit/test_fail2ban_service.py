@@ -146,13 +146,6 @@ class TestFail2BanService:
         assert result is True
         mock_write.assert_called_once()
 
-    def test_uninstall_wrapper_delegates_to_uninstall_fail2ban(self):
-        with patch.object(self.service, "uninstall_fail2ban", return_value=True) as mock_uninstall:
-            result = self.service.uninstall(confirm=True)
-
-        assert result is True
-        mock_uninstall.assert_called_once_with(confirm=True)
-
     def test_get_status_not_installed(self):
         with patch.object(self.service, "_is_service_installed", return_value=False):
             status = self.service.get_status()
@@ -196,7 +189,7 @@ class TestFail2BanService:
             patch.object(self.service, "_get_service_status", return_value="active"),
             patch.object(self.service, "_is_jail_active", return_value=True),
         ):
-            result = self.service.install_fail2ban()
+            result = self.service.activate()
 
         assert result is True
 
@@ -207,7 +200,7 @@ class TestFail2BanService:
         ):
             mock_run.return_value = Mock(returncode=1, stdout="")
 
-            result = self.service.install_fail2ban()
+            result = self.service.activate()
 
         assert result is False
         mock_run.assert_called_once_with(["apt", "install", "fail2ban", "-y"], check=False)
@@ -220,7 +213,7 @@ class TestFail2BanService:
         ):
             mock_run.return_value = Mock(returncode=0, stdout="")
 
-            result = self.service.install_fail2ban()
+            result = self.service.activate()
 
         assert result is False
         mock_write.assert_called_once()
@@ -237,7 +230,7 @@ class TestFail2BanService:
                 Mock(returncode=1, stdout=""),
             ]
 
-            result = self.service.install_fail2ban()
+            result = self.service.activate()
 
         assert result is False
 
@@ -254,7 +247,7 @@ class TestFail2BanService:
                 Mock(returncode=0, stdout=""),
             ]
 
-            result = self.service.install_fail2ban()
+            result = self.service.activate()
 
         assert result is False
 
@@ -273,7 +266,7 @@ class TestFail2BanService:
                 Mock(returncode=0, stdout="status output"),
             ]
 
-            result = self.service.install_fail2ban()
+            result = self.service.activate()
 
         assert result is False
 
@@ -291,7 +284,7 @@ class TestFail2BanService:
                 Mock(returncode=0, stdout="Status for the sshd jail"),
             ]
 
-            result = self.service.install_fail2ban()
+            result = self.service.activate()
 
         assert result is True
 
@@ -300,32 +293,32 @@ class TestFail2BanService:
             patch.object(self.service, "_is_service_installed", return_value=False),
             patch("app.services.fail2ban.run", side_effect=FileNotFoundError("apt")),
         ):
-            assert self.service.install_fail2ban() is False
+            assert self.service.activate() is False
 
     def test_install_fail2ban_handles_permission_error(self):
         with (
             patch.object(self.service, "_is_service_installed", return_value=False),
             patch("app.services.fail2ban.run", side_effect=PermissionError("denied")),
         ):
-            assert self.service.install_fail2ban() is False
+            assert self.service.activate() is False
 
     def test_install_fail2ban_handles_general_exception(self):
         with (
             patch.object(self.service, "_is_service_installed", return_value=False),
             patch("app.services.fail2ban.run", side_effect=RuntimeError("boom")),
         ):
-            assert self.service.install_fail2ban() is False
+            assert self.service.activate() is False
 
     @patch("builtins.input", return_value="n")
     def test_uninstall_fail2ban_cancelled_by_user(self, mock_input):
-        assert self.service.uninstall_fail2ban(confirm=True) is True
+        assert self.service.uninstall(confirm=True) is True
 
     def test_uninstall_fail2ban_returns_true_when_not_installed(self):
         with (
             patch.object(self.service, "_is_service_installed", return_value=False),
             patch("app.services.fail2ban.run") as mock_run,
         ):
-            result = self.service.uninstall_fail2ban()
+            result = self.service.uninstall()
 
         assert result is True
         mock_run.assert_called_once_with(["rm", "-f", self.service.JAIL_CONFIG_PATH], check=False)
@@ -341,7 +334,7 @@ class TestFail2BanService:
                 Mock(returncode=0, stdout=""),
             ]
 
-            result = self.service.uninstall_fail2ban()
+            result = self.service.uninstall()
 
         assert result is True
 
@@ -356,7 +349,7 @@ class TestFail2BanService:
                 Mock(returncode=0, stdout=""),
             ]
 
-            result = self.service.uninstall_fail2ban()
+            result = self.service.uninstall()
 
         assert result is True
 
@@ -373,24 +366,24 @@ class TestFail2BanService:
                 Mock(returncode=0, stdout=""),
             ]
 
-            result = self.service.uninstall_fail2ban()
+            result = self.service.uninstall()
 
         assert result is False
 
     def test_uninstall_fail2ban_handles_file_not_found(self):
         with patch.object(self.service, "_is_service_installed", side_effect=FileNotFoundError):
-            assert self.service.uninstall_fail2ban() is True
+            assert self.service.uninstall() is True
 
     def test_uninstall_fail2ban_handles_permission_error(self):
         with (
             patch.object(self.service, "_is_service_installed", return_value=True),
             patch("app.services.fail2ban.run", side_effect=PermissionError("denied")),
         ):
-            assert self.service.uninstall_fail2ban() is False
+            assert self.service.uninstall() is False
 
     def test_uninstall_fail2ban_handles_general_exception(self):
         with (
             patch.object(self.service, "_is_service_installed", return_value=True),
             patch("app.services.fail2ban.run", side_effect=RuntimeError("boom")),
         ):
-            assert self.service.uninstall_fail2ban() is False
+            assert self.service.uninstall() is False

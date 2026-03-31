@@ -178,10 +178,6 @@ findtime = 1h
             logger.exception("💥 Критическая ошибка при установке Fail2Ban")
             return False
 
-    def uninstall(self, confirm: bool = False) -> bool:
-        """Единая точка входа для удаления Fail2Ban."""
-        return self.uninstall_fail2ban(confirm=confirm)
-
     def is_installed(self) -> bool:
         """Проверяет, установлен ли Fail2Ban."""
         return self._is_service_installed()
@@ -189,10 +185,6 @@ findtime = 1h
     def is_active(self) -> bool:
         """Проверяет, активен ли Fail2Ban и его SSH jail."""
         return self._get_service_status() == "active" and self._is_jail_active(self.JAIL_NAME)
-
-    def activate(self) -> bool:
-        """Запускает Fail2Ban с конфигурацией SSH-jail по умолчанию."""
-        return self.install_fail2ban()
 
     def deactivate(self, confirm: bool = False) -> bool:
         """Останавливает Fail2Ban без удаления пакета и конфигурации."""
@@ -254,7 +246,7 @@ findtime = 1h
             ],
         )
 
-    def install_fail2ban(self) -> bool:
+    def activate(self) -> bool:
         """Устанавливает и активирует Fail2Ban с SSH jail по умолчанию."""
         try:
             logger.info("🛡️ Начало установки Fail2Ban...")
@@ -303,7 +295,7 @@ findtime = 1h
             logger.exception("💥 Критическая ошибка при установке Fail2Ban")
             return False
 
-    def uninstall_fail2ban(self, confirm: bool = False) -> bool:
+    def uninstall(self, confirm: bool = False) -> bool:
         """Полностью удаляет Fail2Ban и его конфигурацию (идемпотентно)"""
         try:
             if confirm:

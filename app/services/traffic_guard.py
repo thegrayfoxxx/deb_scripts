@@ -24,14 +24,6 @@ class TrafficGuardService:
         "🔗 GitHub репозиторий: https://github.com/DonMatteoVPN/TrafficGuard-auto",
     )
 
-    def install(self) -> bool:
-        """Единая точка входа для установки TrafficGuard."""
-        return self.install_trafficguard()
-
-    def uninstall(self, confirm: bool = False) -> bool:
-        """Единая точка входа для удаления TrafficGuard."""
-        return self.uninstall_trafficguard(confirm=confirm)
-
     def is_installed(self) -> bool:
         """Проверяет, установлен ли TrafficGuard."""
         return self._is_trafficguard_installed()
@@ -202,7 +194,7 @@ class TrafficGuardService:
             return False
         return True
 
-    def install_trafficguard(self) -> bool:
+    def install(self) -> bool:
         """Устанавливает TrafficGuard (идемпотентно, неинтерактивно)"""
         try:
             logger.info("🛡️ Начало установки TrafficGuard (комплексной системы защиты сервера)...")
@@ -344,7 +336,7 @@ class TrafficGuardService:
             logger.exception("💥 Критическая ошибка")
             return False
 
-    def uninstall_trafficguard(self, confirm: bool = False) -> bool:
+    def uninstall(self, confirm: bool = False) -> bool:
         """Удаляет TrafficGuard (идемпотентно)"""
         try:
             if confirm:

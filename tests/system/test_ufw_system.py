@@ -61,7 +61,7 @@ class TestUfwSystemService:
             mock_result.stdout = "/usr/sbin/ufw"
             mock_run.return_value = mock_result
 
-            is_installed = self.service.is_installed()
+            self.service.is_installed()
             # Проверяем, что вызывается правильная команда
             mock_run.assert_called_once_with(["which", "ufw"], check=False)
 
@@ -95,7 +95,9 @@ class TestUfwSystemService:
             mock_run.return_value = mock_result
 
             status = self.service.get_status()
-            assert status == "unknown"
+            assert "Статус установки: 🔴 не установлен" in status
+            assert "Статус активации: 🔴 не активирован" in status
+            assert "Вывод ufw status: недоступен" in status
 
     @pytest.mark.integration
     def test_ufw_service_compatibility_with_traffic_guard(self):

@@ -148,7 +148,7 @@ class TestBBRService:
             patch.object(self.service, "install", return_value=True) as mock_install,
             patch.object(self.service, "_get_current_congestion_control", return_value="bbr"),
         ):
-            result = self.service.enable_bbr()
+            result = self.service.activate()
 
         assert result is True
         mock_install.assert_called_once_with()
@@ -160,7 +160,7 @@ class TestBBRService:
         with patch("app.services.bbr.run") as mock_run:
             mock_run.return_value = mock_result
 
-            self.service.disable_bbr()
+            self.service.deactivate()
 
             # Только одна проверка на наличие cubic
             mock_run.assert_called_once_with(
@@ -187,14 +187,12 @@ class TestBBRService:
         with (
             patch.object(self.service, "_has_bbr_configuration", side_effect=[False, True]),
             patch("app.services.bbr.run") as mock_run,
-            patch.object(
-                self.service, "_is_bbr_module_loaded", side_effect=[False, True]
-            ) as mock_is_loaded,
+            patch.object(self.service, "_is_bbr_module_loaded", side_effect=[False, True]),
         ):
             mock_run.side_effect = side_effects
             mock_bbr_write_config_file.return_value = True
 
-            self.service.enable_bbr()
+            self.service.activate()
 
             # Check that critical methods were called
             # Based on actual behavior, we might not get all 7 calls if there are early returns
@@ -210,7 +208,7 @@ class TestBBRService:
             patch("app.services.bbr.run") as mock_run,
         ):
             mock_run.return_value = Mock(returncode=1, stdout="")
-            result = self.service.enable_bbr()
+            result = self.service.activate()
 
         assert result is False
 
@@ -222,7 +220,7 @@ class TestBBRService:
             patch("app.services.bbr.time.sleep"),
         ):
             mock_run.return_value = Mock(returncode=0, stdout="")
-            result = self.service.enable_bbr()
+            result = self.service.activate()
 
         assert result is False
 
@@ -232,7 +230,7 @@ class TestBBRService:
             patch.object(self.service, "_is_bbr_module_loaded", return_value=True),
             patch.object(self.service, "_write_config_file", return_value=False),
         ):
-            result = self.service.enable_bbr()
+            result = self.service.activate()
 
         assert result is False
 
@@ -248,7 +246,7 @@ class TestBBRService:
             patch("app.services.bbr.run") as mock_run,
         ):
             mock_run.return_value = Mock(returncode=0, stdout="")
-            result = self.service.enable_bbr()
+            result = self.service.activate()
 
         assert result is False
 
@@ -265,7 +263,7 @@ class TestBBRService:
             patch("app.services.bbr.run") as mock_run,
         ):
             mock_run.return_value = Mock(returncode=0, stdout="")
-            result = self.service.enable_bbr()
+            result = self.service.activate()
 
         assert result is True
 
@@ -283,7 +281,7 @@ class TestBBRService:
         mock_run.side_effect = side_effects
         mock_write_config.return_value = True
 
-        self.service.disable_bbr()
+        self.service.deactivate()
 
         # Check that critical methods were called
         assert mock_run.call_count == 4  # Initial check, apply settings (2), final check
@@ -291,7 +289,7 @@ class TestBBRService:
 
     @patch("builtins.input", return_value="n")
     def test_disable_bbr_cancelled_by_user(self, mock_input):
-        result = self.service.disable_bbr(confirm=True)
+        result = self.service.deactivate(confirm=True)
         assert result is True
 
     def test_disable_bbr_returns_false_when_write_config_fails(self):
@@ -299,7 +297,7 @@ class TestBBRService:
             patch.object(self.service, "_get_current_congestion_control", return_value="bbr"),
             patch.object(self.service, "_write_config_file", return_value=False),
         ):
-            result = self.service.disable_bbr()
+            result = self.service.deactivate()
 
         assert result is False
 
@@ -314,7 +312,7 @@ class TestBBRService:
             patch("app.services.bbr.run") as mock_run,
         ):
             mock_run.return_value = Mock(returncode=0, stdout="")
-            result = self.service.disable_bbr()
+            result = self.service.deactivate()
 
         assert result is False
 
@@ -329,7 +327,7 @@ class TestBBRService:
             patch("app.services.bbr.run") as mock_run,
         ):
             mock_run.return_value = Mock(returncode=0, stdout="")
-            result = self.service.disable_bbr()
+            result = self.service.deactivate()
 
         assert result is False
 
@@ -373,7 +371,7 @@ class TestBBRService:
         mock_run.side_effect = FileNotFoundError("Command not found")
 
         with patch("app.services.bbr.logger") as mock_logger:
-            self.service.enable_bbr()
+            self.service.activate()
 
             # Should log the error
             mock_logger.error.assert_called()
@@ -386,7 +384,7 @@ class TestBBRService:
         mock_run.side_effect = PermissionError("Permission denied")
 
         with patch("app.services.bbr.logger") as mock_logger:
-            self.service.enable_bbr()
+            self.service.activate()
 
             # Should log the error
             mock_logger.error.assert_called()
@@ -399,7 +397,7 @@ class TestBBRService:
         mock_write_config.side_effect = Exception("General error")
 
         with patch("app.services.bbr.logger") as mock_logger:
-            self.service.enable_bbr()
+            self.service.activate()
 
             # Should log the exception
             mock_logger.exception.assert_called()
@@ -411,7 +409,7 @@ class TestBBRService:
         mock_run.side_effect = FileNotFoundError("Command not found")
 
         with patch("app.services.bbr.logger") as mock_logger:
-            self.service.disable_bbr()
+            self.service.deactivate()
 
             # Should log the error
             mock_logger.error.assert_called()
@@ -423,7 +421,7 @@ class TestBBRService:
         mock_run.side_effect = PermissionError("Permission denied")
 
         with patch("app.services.bbr.logger") as mock_logger:
-            self.service.disable_bbr()
+            self.service.deactivate()
 
             # Should log the error
             mock_logger.error.assert_called()
@@ -435,7 +433,7 @@ class TestBBRService:
         mock_run.side_effect = Exception("General error")
 
         with patch("app.services.bbr.logger") as mock_logger:
-            self.service.disable_bbr()
+            self.service.deactivate()
 
             # Should log the exception
             mock_logger.exception.assert_called()

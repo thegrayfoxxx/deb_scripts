@@ -8,11 +8,11 @@ from app.interfaces.interactive import ufw
 class TestUfwInteractive:
     """Тесты для интерактивного интерфейса UFW."""
 
-    def test_interactive_run_calls_show_menu(self):
-        """Тест что интерактивный запуск вызывает показ меню."""
-        with patch("app.interfaces.interactive.ufw.show_ufw_menu") as mock_show_menu:
+    def test_interactive_run_calls_menu_loop(self):
+        """Тест что интерактивный запуск вызывает цикл меню."""
+        with patch("app.interfaces.interactive.ufw.run_menu_loop") as mock_run_menu_loop:
             ufw.interactive_run()
-            mock_show_menu.assert_called_once()
+            mock_run_menu_loop.assert_called_once()
 
     def test_display_ufw_info_prints_content(self):
         """Тест отображения информации о UFW."""

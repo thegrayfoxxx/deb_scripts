@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Callable, Iterable, Sequence, TypeAlias
 
-from app.interfaces.interactive.status_utils import status_badge
+from app.utils.status_text import status_badge
 
 SERVICE_EXIT_LABEL = "0 - 🏠 Вернуться в главное меню"
 SERVICE_EXIT_MESSAGE = "🏠 Возврат в главное меню..."
@@ -121,8 +121,14 @@ def run_menu_loop(
         msg = "Нужно передать либо items, либо items_factory"
         raise ValueError(msg)
 
+    resolved_items_factory = items_factory
+
     while True:
-        current_items = items if items is not None else items_factory()
+        if items is not None:
+            current_items = items
+        else:
+            assert resolved_items_factory is not None
+            current_items = resolved_items_factory()
         actions = {item.key: item.action for item in current_items}
 
         print(f"\n{title}")

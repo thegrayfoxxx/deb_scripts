@@ -99,7 +99,7 @@ def test_ufw_menu_displays_inline_status():
         patch("builtins.input", return_value="0") as mock_input,
         patch("builtins.print"),
     ):
-        ufw.show_ufw_menu()
+        ufw.interactive_run()
 
     prompt = mock_input.call_args_list[0].args[0]
     assert "🟢 установлен" in prompt
@@ -175,7 +175,10 @@ def test_main_menu_displays_inline_statuses():
         patch("builtins.input", return_value="0") as mock_input,
         patch("builtins.print"),
     ):
-        run.display_main_menu()
+        try:
+            run.run_interactive_script()
+        except SystemExit:
+            pass
 
     prompt = mock_input.call_args.args[0]
     assert "🔴 не активирован" in prompt
@@ -274,6 +277,6 @@ def test_ufw_interactive_status_action_prints_service_status():
         patch("builtins.input", side_effect=["4", "0"]),
         patch("builtins.print") as mock_print,
     ):
-        ufw.show_ufw_menu()
+        ufw.interactive_run()
 
     mock_print.assert_any_call("Status: active")

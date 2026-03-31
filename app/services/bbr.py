@@ -41,14 +41,6 @@ class BBRService:
         """Возвращает True, если BBR сейчас активен."""
         return self._get_current_congestion_control() == "bbr"
 
-    def activate(self) -> bool:
-        """Включает BBR с конфигурацией по умолчанию."""
-        return self.enable_bbr()
-
-    def deactivate(self, confirm: bool = False) -> bool:
-        """Отключает BBR без удаления конфигурации."""
-        return self.disable_bbr(confirm=confirm)
-
     def get_info_lines(self) -> tuple[str, ...]:
         """Возвращает краткую информацию о сервисе для интерактивного UI."""
         return self.INFO_LINES
@@ -211,7 +203,7 @@ class BBRService:
             logger.exception("💥 Критическая ошибка при удалении конфигурации BBR")
             return False
 
-    def enable_bbr(self) -> bool:
+    def activate(self) -> bool:
         """Включает BBR (идемпотентно: безопасно запускать много раз)"""
         try:
             logger.info("🚀 Начало включения TCP BBR Congestion Control...")
@@ -282,7 +274,7 @@ class BBRService:
             logger.exception("💥 Критическая ошибка при включении BBR")
             return False
 
-    def disable_bbr(self, confirm: bool = False) -> bool:
+    def deactivate(self, confirm: bool = False) -> bool:
         """Отключает BBR и возвращает cubic (идемпотентно)"""
         if confirm:
             confirmation = input(

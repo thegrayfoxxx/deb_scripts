@@ -34,7 +34,6 @@ def test_build_main_menu_items_uses_registry_entries():
         main_menu_label="9 - Demo service",
         service_import="demo.service.Factory",
         interactive_import="demo.interactive.run",
-        activatable=False,
         main_menu_status_renderer=lambda current_service: (
             "🟢 ready" if current_service is service else "🔴 broken"
         ),
@@ -53,4 +52,5 @@ def test_build_main_menu_items_uses_registry_entries():
     assert isinstance(items[0], MenuItem)
     assert items[0].key == "9"
     assert items[0].label == "9 - Demo service"
+    assert items[0].status_renderer is not None
     assert items[0].status_renderer() == "🟢 ready"

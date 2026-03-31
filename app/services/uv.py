@@ -105,14 +105,6 @@ class UVService:
         logger.warning(f'   export PATH="{home_local_bin}:$PATH"')
         logger.warning("ℹ️ После этого выполните: source ~/.bashrc (или перезапустите терминал)")
 
-    def install(self) -> bool:
-        """Единая точка входа для установки uv."""
-        return self.install_uv()
-
-    def uninstall(self, confirm: bool = False) -> bool:
-        """Единая точка входа для удаления uv."""
-        return self.uninstall_uv(confirm=confirm)
-
     def is_installed(self) -> bool:
         """Проверяет, установлен ли uv."""
         return self._is_uv_installed()
@@ -137,7 +129,7 @@ class UVService:
         """Возвращает краткую информацию о сервисе для интерактивного UI."""
         return self.INFO_LINES
 
-    def install_uv(self) -> bool:
+    def install(self) -> bool:
         """Устанавливает uv (идемпотентно: безопасно запускать много раз)"""
         try:
             logger.info("🐍 Начало установки uv (современного менеджера пакетов Python)...")
@@ -207,7 +199,7 @@ class UVService:
             logger.exception("💥 Критическая ошибка при установке uv")
             return False
 
-    def uninstall_uv(self, confirm: bool = False) -> bool:
+    def uninstall(self, confirm: bool = False) -> bool:
         """Полностью удаляет uv и его данные (идемпотентно)"""
         try:
             if confirm:

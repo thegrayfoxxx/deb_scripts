@@ -1,8 +1,4 @@
-from app.interfaces.interactive.menu_utils import (
-    prompt_menu,
-    run_menu_loop,
-    show_info_screen,
-)
+from app.interfaces.interactive.menu_utils import run_menu_loop, show_info_screen
 from app.utils.service_registry import build_main_menu_items
 
 PROGRAM_INFO_LINES = [
@@ -17,16 +13,6 @@ PROGRAM_INFO_LINES = [
 def display_program_info():
     """Отображает информацию о программе и её возможностях"""
     show_info_screen("🤖 О программе deb_scripts", PROGRAM_INFO_LINES)
-
-
-def display_main_menu() -> str:
-    """Отображает главное интерактивное меню и возвращает выбор пользователя."""
-    return prompt_menu(
-        header="Выберите утилиту для работы:",
-        items=build_main_menu_items(),
-        info_label="00 - ℹ️ Информация о программе",
-        exit_label="0 - ❌ Выход",
-    )
 
 
 def _exit_program() -> None:
