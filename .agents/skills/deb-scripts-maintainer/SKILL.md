@@ -72,6 +72,8 @@ Use `ManagedServiceProtocol` and `ActivatableServiceProtocol` in `app/services/p
 4. Update `README.md` if user-facing behavior, CLI options, or supported services change.
 5. Add or adjust tests with the code change.
 6. When changing text, verify that the default `ru` flow and `--lang en` both stay coherent.
+7. If the project version changes, update the version references in the documentation in the same change set.
+8. If a new full-test coverage result becomes the canonical reported value, update the coverage references in the documentation and badges in the same change set.
 
 ## Validation
 

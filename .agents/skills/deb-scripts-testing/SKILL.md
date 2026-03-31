@@ -84,15 +84,19 @@ Treat `ty` as a validation step, not a formatting step:
 - Keep tests focused on observable behavior, not implementation trivia.
 - When log levels change, assert the user-facing outcome or logger call that matters, not every incidental debug call.
 - If a system-level command is unavailable in the current environment, stop at unit/integration plus a documented smoke check.
+- If you run a new canonical full-suite coverage pass and the reported coverage changes, update the documented coverage values and coverage badge text in the same change set.
+- Treat coverage numbers in documentation as release-facing data, not stale examples, once a new full run is being reported to the user.
 
 ## Post-test cleanup
 
 - After running tests or validation, remove generated `__pycache__` directories inside this repository.
 - Keep cleanup scoped to the repository only.
+- Do not descend into `.venv` during cleanup at all.
 - Do not delete `.venv`, `.pytest_cache`, coverage artifacts, or any non-`__pycache__` paths unless the user explicitly asks.
+- Treat `.venv` as fully out of scope for post-test cleanup, including nested `__pycache__` directories inside it.
 
 Preferred cleanup command:
 
 ```bash
-find . -path './.venv' -prune -o -type d -name '__pycache__' -prune -exec rm -rf {} +
+find . \( -path './.venv' -o -path './.venv/*' \) -prune -o -type d -name '__pycache__' -prune -exec rm -rf {} +
 ```

@@ -98,6 +98,15 @@ The requested mode should be one of:
   - `uv version --bump major`
 - If an exact version is required, use `uv version <value>`.
 - Keep the version bump in the same logical commit set or release step as the change it represents.
-- When a release bump is made, create a matching Git tag for that version unless the user explicitly does not want tagging.
+- When a release bump is made, update documentation references to the project version in the same change set.
+- At minimum, sync the version shown in the detailed documentation and any release-facing README text that surfaces the current version.
+- When a release bump is made, create the matching Git tag for that version immediately unless the user explicitly does not want tagging.
+- Treat the tag as part of the release workflow, not as an optional follow-up.
+- Use the project version after the bump as the tag name, prefixed with `v`, for example `v2.1.3`.
+- After creating the tag, explicitly propose the push commands for the current branch and the new tag.
+- Default push guidance should be:
+  - `git push origin <current-branch>`
+  - `git push origin vX.Y.Z`
+- If the branch is already confirmed to be up to date on `origin`, still propose the tag push command and mention that the branch push is only needed if local commits are not yet on the remote.
 - Do not bump the version for every commit by default; do it only when the change logically represents a release-worthy increment.
 - If no bump is needed, keep the commit versionless by design rather than skipping the check.
