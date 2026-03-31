@@ -148,4 +148,4 @@ docker compose run --rm test pytest -q --cov=app --cov=main --cov-report=term-mi
 
 - `391 passed`
 - `6 skipped`
-- покрытие: `91%`
+- покрытие: `90%`

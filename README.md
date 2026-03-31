@@ -95,7 +95,7 @@ Latest full run:
 
 - `391 passed`
 - `6 skipped`
-- coverage: `91%`
+- coverage: `90%`
 
 ## License
 
