@@ -1,0 +1,28 @@
+name: Release On Tag
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            echo "Release for ${TAG_NAME} already exists"
+            exit 0
+          fi
+
+          gh release create "${TAG_NAME}" \
+            --title "${TAG_NAME}" \
+            --generate-notes

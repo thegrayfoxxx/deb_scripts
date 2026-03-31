@@ -86,6 +86,10 @@ Service codes:
 
 The language-specific docs contain setup, usage, logging, development, and testing details.
 
+## Releases
+
+Pushing a Git tag that matches `v*`, for example `v2.1.1`, triggers a GitHub Actions workflow that creates a GitHub Release with generated notes.
+
 ## Testing
 
 ```bash
