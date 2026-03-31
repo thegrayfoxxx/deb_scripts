@@ -26,6 +26,7 @@ def test_bbr_menu_displays_inline_status():
     prompt = mock_input.call_args.args[0]
     assert "🟢 установлен" in prompt
     assert "🟢 активирован" in prompt
+    assert "Активировать BBR (подготовит при необходимости)" in prompt
     assert "Показать статус BBR" in prompt
 
 
@@ -56,6 +57,7 @@ def test_fail2ban_menu_displays_inline_status():
 
     prompt = mock_input.call_args.args[0]
     assert "🟢 установлен" in prompt
+    assert "Активировать Fail2Ban (установит при необходимости)" in prompt
     assert "Показать статус Fail2Ban" in prompt
 
 
@@ -104,6 +106,10 @@ def test_ufw_menu_displays_inline_status():
     prompt = mock_input.call_args_list[0].args[0]
     assert "🟢 установлен" in prompt
     assert "🔴 не активирован" in prompt
+    assert "Активировать UFW (установит при необходимости)" in prompt
+    assert "Закрыть порты из списка" in prompt
+    assert "Открыть произвольный порт" in prompt
+    assert "Закрыть произвольный порт" in prompt
 
 
 def test_main_menu_displays_inline_statuses():
@@ -274,7 +280,7 @@ def test_ufw_interactive_status_action_prints_service_status():
 
     with (
         patch("app.interfaces.menu.ufw.UfwService", return_value=service),
-        patch("builtins.input", side_effect=["4", "0"]),
+        patch("builtins.input", side_effect=["7", "0"]),
         patch("builtins.print") as mock_print,
     ):
         ufw.interactive_run()

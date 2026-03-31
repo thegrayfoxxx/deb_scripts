@@ -23,6 +23,13 @@ def test_service_registry_help_text_is_generated_from_registry():
     assert "6=UV" in help_text
 
 
+def test_service_registry_uses_concise_main_menu_labels():
+    entries = {entry.key: entry for entry in service_registry.get_service_registry()}
+
+    assert entries["ufw"].main_menu_label == "1 - 🔥 UFW - межсетевой экран"
+    assert entries["bbr"].main_menu_label == "2 - 🌐 BBR - ускорение сети"
+
+
 def test_build_main_menu_items_uses_registry_entries():
     service = MagicMock()
     action = MagicMock()

@@ -36,14 +36,14 @@ def display_docker_submenu(service: DockerService):
 
 def display_docker_info():
     """Отображает информацию о Docker сервисе"""
-    show_info_screen("🐳 Docker Container Platform", DockerService().get_info_lines())
+    show_info_screen("🐳 Docker", DockerService().get_info_lines())
 
 
 def interactive_run():
     service = DockerService()
 
     run_menu_loop(
-        title="🐳 Docker Container Platform",
+        title="🐳 Управление Docker",
         header="Доступные действия для Docker:",
         items_factory=lambda: _build_menu_items(service),
         info_handler=display_docker_info,

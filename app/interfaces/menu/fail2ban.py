@@ -25,7 +25,7 @@ def _build_menu_items(service: Fail2BanService):
         ),
         MenuItem(
             key="2",
-            label="2 - 🔐 Активировать Fail2Ban",
+            label="2 - ▶️ Активировать Fail2Ban (установит при необходимости)",
             action=service.activate,
             status_renderer=lambda status=activation_status: status,
         ),
@@ -36,7 +36,7 @@ def _build_menu_items(service: Fail2BanService):
         ),
         MenuItem(
             key="4",
-            label="4 - 🔓 Удалить Fail2Ban",
+            label="4 - 🗑️ Удалить Fail2Ban",
             action=lambda: service.uninstall(confirm=True),
         ),
         MenuItem(
@@ -58,16 +58,14 @@ def display_fail2ban_submenu(service: Fail2BanService):
 
 def display_fail2ban_info():
     """Отображает информацию о Fail2Ban сервисе"""
-    show_info_screen(
-        "🛡️ Fail2Ban Intrusion Prevention Software", Fail2BanService().get_info_lines()
-    )
+    show_info_screen("🛡️ Fail2Ban", Fail2BanService().get_info_lines())
 
 
 def interactive_run():
     service = Fail2BanService()
 
     run_menu_loop(
-        title="🛡️ Fail2Ban Intrusion Prevention Software",
+        title="🛡️ Управление Fail2Ban",
         header="Доступные действия для Fail2Ban:",
         items_factory=lambda: _build_menu_items(service),
         info_handler=display_fail2ban_info,

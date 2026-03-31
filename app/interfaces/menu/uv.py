@@ -36,14 +36,14 @@ def display_uv_submenu(service: UVService):
 
 def display_uv_info():
     """Отображает информацию о UV сервисе"""
-    show_info_screen("🐍 UV Python Package Manager", UVService().get_info_lines())
+    show_info_screen("🐍 UV", UVService().get_info_lines())
 
 
 def interactive_run():
     service = UVService()
 
     run_menu_loop(
-        title="🐍 UV Python Package Manager",
+        title="🐍 Управление UV",
         header="Доступные действия для UV:",
         items_factory=lambda: _build_menu_items(service),
         info_handler=display_uv_info,

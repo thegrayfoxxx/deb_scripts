@@ -25,13 +25,13 @@ def _build_menu_items(service: BBRService):
         ),
         MenuItem(
             key="2",
-            label="2 - 🔌 Включить BBR",
+            label="2 - ▶️ Активировать BBR (подготовит при необходимости)",
             action=service.activate,
             status_renderer=lambda status=activation_status: status,
         ),
         MenuItem(
             key="3",
-            label="3 - 🔓 Отключить BBR",
+            label="3 - ⏹️ Отключить BBR",
             action=lambda: service.deactivate(confirm=True),
         ),
         MenuItem(
@@ -58,14 +58,14 @@ def display_bbr_submenu(service: BBRService):
 
 def display_bbr_info():
     """Отображает информацию о BBR сервисе"""
-    show_info_screen("🌐 TCP BBR Congestion Control", BBRService().get_info_lines())
+    show_info_screen("🌐 BBR", BBRService().get_info_lines())
 
 
 def interactive_run():
     service = BBRService()
 
     run_menu_loop(
-        title="🌐 TCP BBR Congestion Control",
+        title="🌐 Управление BBR",
         header="Доступные действия для BBR:",
         items_factory=lambda: _build_menu_items(service),
         info_handler=display_bbr_info,

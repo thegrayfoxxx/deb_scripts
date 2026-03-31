@@ -29,6 +29,15 @@ class TestUfwInteractive:
 
         mock_service.open_port.assert_not_called()
 
+    def test_close_specific_ports_cancel(self):
+        """Тест отмены закрытия специфичных портов."""
+        mock_service = Mock()
+
+        with patch("builtins.input", return_value="0"), patch("builtins.print"):
+            ufw._close_specific_ports(mock_service)
+
+        mock_service.close_port.assert_not_called()
+
     def test_open_specific_ports_web_group(self):
         """Тест открытия веб-группы портов."""
         mock_service = Mock()
@@ -81,6 +90,62 @@ class TestUfwInteractive:
         }
         actual_ports = {call.args[0] for call in mock_service.open_port.call_args_list}
         assert actual_ports == expected_ports
+
+    def test_close_specific_ports_all_groups_except_ssh(self):
+        """Тест закрытия всех групп портов кроме SSH."""
+        mock_service = Mock()
+        mock_service.close_port.return_value = True
+
+        with patch("builtins.input", return_value="10"), patch("builtins.print"):
+            ufw._close_specific_ports(mock_service)
+
+        expected_ports = {
+            "80",
+            "443",
+            "53",
+            "67",
+            "68",
+            "25",
+            "587",
+            "465",
+            "143",
+            "993",
+            "110",
+            "995",
+            "20",
+            "21",
+            "2222",
+            "3306",
+            "5432",
+        }
+        actual_ports = {call.args[0] for call in mock_service.close_port.call_args_list}
+        assert actual_ports == expected_ports
+
+    def test_manage_custom_port_open_success(self):
+        mock_service = Mock()
+        mock_service.open_port.return_value = True
+
+        with patch("builtins.input", return_value="8080"), patch("builtins.print"):
+            ufw._manage_custom_port(mock_service, action="open")
+
+        mock_service.open_port.assert_called_once_with("8080")
+
+    def test_manage_custom_port_close_success(self):
+        mock_service = Mock()
+        mock_service.close_port.return_value = True
+
+        with patch("builtins.input", return_value="8443/tcp"), patch("builtins.print"):
+            ufw._manage_custom_port(mock_service, action="close")
+
+        mock_service.close_port.assert_called_once_with("8443/tcp")
+
+    def test_manage_custom_port_close_rejects_ssh(self):
+        mock_service = Mock()
+
+        with patch("builtins.input", return_value="22"), patch("builtins.print"):
+            ufw._manage_custom_port(mock_service, action="close")
+
+        mock_service.close_port.assert_not_called()
 
     @patch("builtins.input", side_effect=["invalid", "0"])
     @patch("builtins.print")

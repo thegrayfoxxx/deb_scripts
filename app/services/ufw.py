@@ -10,6 +10,8 @@ logger = get_logger(__name__)
 class UfwService:
     """Класс сервиса для управления межсетевым экраном UFW с настройкой общих портов."""
 
+    SSH_PORT_ALIASES = {"22", "22/tcp", "ssh"}
+
     INFO_LINES = (
         "UFW - это интерфейс для управления межсетевым экраном iptables",
         "Предназначен для упрощения настройки правил межсетевого экрана",
@@ -298,6 +300,27 @@ class UfwService:
                 return False
         except Exception:
             logger.exception(f"💥 Критическая ошибка при открытии порта {port}")
+            return False
+
+    def close_port(self, port: str) -> bool:
+        """Удаляет правило для конкретного порта, кроме SSH."""
+        normalized_port = port.strip().lower()
+        if normalized_port in self.SSH_PORT_ALIASES:
+            logger.warning("⚠️ Удаление правила SSH запрещено для сохранения безопасного доступа")
+            return False
+
+        try:
+            logger.debug(f"🔒 Удаление правила для порта {port}...")
+            result = run(["ufw", "delete", "allow", port], check=False)
+
+            if result.returncode == 0:
+                logger.debug(f"✅ Правило для порта {port} успешно удалено")
+                return True
+
+            logger.warning(f"⚠️ Не удалось удалить правило для порта {port}")
+            return False
+        except Exception:
+            logger.exception(f"💥 Критическая ошибка при удалении правила для порта {port}")
             return False
 
     def disable(self, confirm: bool = False) -> bool:

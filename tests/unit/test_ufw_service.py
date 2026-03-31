@@ -272,6 +272,20 @@ class TestUfwService:
         with patch("app.services.ufw.run", return_value=Mock(returncode=1, stdout="")):
             assert self.service.open_common_ports() is False
 
+    @patch("app.services.ufw.run", return_value=Mock(returncode=0, stdout=""))
+    def test_close_port_success(self, mock_run):
+        assert self.service.close_port("8080") is True
+        mock_run.assert_called_once_with(["ufw", "delete", "allow", "8080"], check=False)
+
+    @patch("app.services.ufw.run", return_value=Mock(returncode=1, stdout=""))
+    def test_close_port_failure(self, mock_run):
+        assert self.service.close_port("8080") is False
+
+    @patch("app.services.ufw.run")
+    def test_close_port_rejects_ssh_rule(self, mock_run):
+        assert self.service.close_port("22") is False
+        mock_run.assert_not_called()
+
     @patch("app.services.ufw.os.geteuid", return_value=0)  # Root privileges
     @patch("app.services.ufw.run")
     def test_install_exception_handling(self, mock_run, mock_geteuid):
