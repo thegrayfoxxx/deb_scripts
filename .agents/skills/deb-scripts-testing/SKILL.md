@@ -84,3 +84,15 @@ Treat `ty` as a validation step, not a formatting step:
 - Keep tests focused on observable behavior, not implementation trivia.
 - When log levels change, assert the user-facing outcome or logger call that matters, not every incidental debug call.
 - If a system-level command is unavailable in the current environment, stop at unit/integration plus a documented smoke check.
+
+## Post-test cleanup
+
+- After running tests or validation, remove generated `__pycache__` directories inside this repository.
+- Keep cleanup scoped to the repository only.
+- Do not delete `.venv`, `.pytest_cache`, coverage artifacts, or any non-`__pycache__` paths unless the user explicitly asks.
+
+Preferred cleanup command:
+
+```bash
+find . -path './.venv' -prune -o -type d -name '__pycache__' -prune -exec rm -rf {} +
+```

@@ -10,6 +10,7 @@ Use this skill whenever a change affects subprocess execution or host state.
 ## Command design
 
 - Prefer explicit argument lists over shell strings.
+- Use shell execution when the upstream workflow depends on shell features such as pipes, redirection, or `source`, for example `curl ... | sh` or sourcing `~/.local/bin/env`.
 - Use `check=False` when you need to inspect return codes and keep control of logging.
 - Treat command stdout/stderr as debug material unless the user truly needs to see it.
 
