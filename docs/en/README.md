@@ -32,6 +32,8 @@ sudo ./run.sh
 sudo python3 main.py
 ```
 
+`run.sh` bootstraps `uv` automatically. If `uv` is missing, the script installs `curl` when needed, runs the official installer, sources `"$HOME/.local/bin/env"`, creates owned symlinks in `/usr/local/bin` so `uv` is globally callable, runs `uv sync`, and then starts the app through `./.venv/bin/python3`.
+
 ### Non-interactive mode
 
 Arguments:
@@ -100,6 +102,9 @@ Provides broader protection against scanners and related network abuse.
 
 Installs and removes the modern Python package manager `uv`.
 
+- standard installation stays in `~/.local/bin`
+- when running as `root` or via `sudo`, the project also creates owned symlinks in `/usr/local/bin` for global `uv`, `uvx`, and `uvw` access
+
 ## Logging
 
 - console verbosity is controlled by `--log-level`
@@ -146,6 +151,6 @@ docker compose run --rm test pytest -q --cov=app --cov=main --cov-report=term-mi
 
 Latest full run:
 
-- `391 passed`
+- `399 passed`
 - `6 skipped`
-- coverage: `90%`
+- coverage: `89%`

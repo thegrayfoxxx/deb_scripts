@@ -31,6 +31,8 @@ Requirements:
 - Debian, Ubuntu, or another `apt`-based distribution
 - `root` privileges for system-changing operations
 
+`run.sh` checks for `uv` on startup. If `uv` is missing, the script installs `curl` when needed, runs the official `uv` installer, sources `"$HOME/.local/bin/env"`, publishes owned symlinks in `/usr/local/bin` for global `uv` access, runs `uv sync`, and then starts the app through `./.venv/bin/python3`.
+
 ## CLI example
 
 ```bash
@@ -93,9 +95,9 @@ The language-specific docs contain setup, usage, logging, development, and testi
 
 Latest full run:
 
-- `391 passed`
+- `399 passed`
 - `6 skipped`
-- coverage: `90%`
+- coverage: `89%`
 
 ## License
 

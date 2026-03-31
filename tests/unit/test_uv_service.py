@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -53,8 +54,12 @@ class TestUVService:
 
     def test_get_uv_paths_success(self, mock_subprocess_result):
         """Тест успешного получения путей uv"""
-        python_mock = mock_subprocess_result(returncode=0, stdout="/home/user/.cache/uv/python")
-        tool_mock = mock_subprocess_result(returncode=0, stdout="/home/user/.local/share/uv/tool")
+        python_mock = mock_subprocess_result(
+            returncode=0, stdout="/home/user/.cache/uv/python"
+        )
+        tool_mock = mock_subprocess_result(
+            returncode=0, stdout="/home/user/.local/share/uv/tool"
+        )
 
         with patch("app.services.uv.run") as mock_run:
             mock_run.side_effect = [python_mock, tool_mock]
@@ -67,7 +72,9 @@ class TestUVService:
 
     def test_get_uv_paths_failure(self, mock_subprocess_result):
         """Тест получения путей uv с ошибкой"""
-        python_mock = mock_subprocess_result(returncode=0, stdout="/home/user/.cache/uv/python")
+        python_mock = mock_subprocess_result(
+            returncode=0, stdout="/home/user/.cache/uv/python"
+        )
         tool_mock = mock_subprocess_result(returncode=1, stdout="")
 
         with patch("app.services.uv.run") as mock_run:
@@ -75,14 +82,91 @@ class TestUVService:
 
             assert self.service._get_uv_paths() is None
 
-    @patch("app.services.uv.Path.home")
+    def test_source_uv_env_updates_process_path(self, tmp_path):
+        env_file = tmp_path / "env"
+        env_file.touch()
+
+        with (
+            patch.object(UVService, "ENV_FILE", env_file),
+            patch(
+                "app.services.uv.run",
+                return_value=Mock(returncode=0, stdout="/tmp/bin:/usr/bin"),
+            ),
+            patch.dict(os.environ, {"PATH": "/usr/bin"}, clear=False),
+        ):
+            assert self.service._source_uv_env() is True
+            assert os.environ["PATH"] == "/tmp/bin:/usr/bin"
+
+    def test_ensure_global_uv_symlinks_creates_links(self, tmp_path):
+        local_bin = tmp_path / ".local" / "bin"
+        global_bin = tmp_path / "usr" / "local" / "bin"
+        local_bin.mkdir(parents=True)
+        global_bin.mkdir(parents=True)
+
+        self.service.UV_EXECUTABLE = local_bin / "uv"
+        self.service.UVX_EXECUTABLE = local_bin / "uvx"
+        self.service.UVW_EXECUTABLE = local_bin / "uvw"
+        self.service.GLOBAL_UV_EXECUTABLE = global_bin / "uv"
+        self.service.GLOBAL_UVX_EXECUTABLE = global_bin / "uvx"
+        self.service.GLOBAL_UVW_EXECUTABLE = global_bin / "uvw"
+
+        for path in (
+            self.service.UV_EXECUTABLE,
+            self.service.UVX_EXECUTABLE,
+            self.service.UVW_EXECUTABLE,
+        ):
+            path.touch()
+
+        assert self.service._ensure_global_uv_symlinks() is True
+        assert self.service.GLOBAL_UV_EXECUTABLE.is_symlink()
+        assert self.service.GLOBAL_UV_EXECUTABLE.resolve() == self.service.UV_EXECUTABLE
+        assert self.service.GLOBAL_UVX_EXECUTABLE.is_symlink()
+        assert self.service.GLOBAL_UVW_EXECUTABLE.is_symlink()
+
+    def test_remove_owned_global_uv_symlinks_keeps_foreign_symlink(self, tmp_path):
+        local_bin = tmp_path / ".local" / "bin"
+        global_bin = tmp_path / "usr" / "local" / "bin"
+        local_bin.mkdir(parents=True)
+        global_bin.mkdir(parents=True)
+
+        self.service.UV_EXECUTABLE = local_bin / "uv"
+        self.service.UVX_EXECUTABLE = local_bin / "uvx"
+        self.service.UVW_EXECUTABLE = local_bin / "uvw"
+        self.service.GLOBAL_UV_EXECUTABLE = global_bin / "uv"
+        self.service.GLOBAL_UVX_EXECUTABLE = global_bin / "uvx"
+        self.service.GLOBAL_UVW_EXECUTABLE = global_bin / "uvw"
+
+        self.service.UV_EXECUTABLE.touch()
+        self.service.UVX_EXECUTABLE.touch()
+        self.service.UVW_EXECUTABLE.touch()
+        self.service.GLOBAL_UV_EXECUTABLE.symlink_to(self.service.UV_EXECUTABLE)
+        foreign_target = tmp_path / "foreign-uvx"
+        foreign_target.touch()
+        self.service.GLOBAL_UVX_EXECUTABLE.symlink_to(foreign_target)
+
+        assert self.service._remove_owned_global_uv_symlinks() is False
+        assert not self.service.GLOBAL_UV_EXECUTABLE.exists()
+        assert self.service.GLOBAL_UVX_EXECUTABLE.exists()
+
     @patch("os.environ.get")
-    def test_is_path_configured_already_present(self, mock_environ_get, mock_home):
+    def test_is_path_configured_already_present(self, mock_environ_get):
         """Тест проверки PATH когда путь уже добавлен"""
-        mock_home.return_value = Path("/root")  # Docker container uses root user
-        mock_environ_get.return_value = (
-            "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.local/bin"
-        )
+        mock_environ_get.return_value = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.local/bin"
+
+        with patch.object(
+            UVService, "_get_expected_uv_bin_dir", return_value=Path("/root/.local/bin")
+        ):
+            assert self.service._is_path_configured() is True
+
+    @patch("os.environ.get")
+    def test_is_path_configured_uses_resolved_uv_directory(
+        self, mock_environ_get, tmp_path
+    ):
+        executable = tmp_path / "bin" / "uv"
+        executable.parent.mkdir()
+        executable.touch()
+        self.service.UV_EXECUTABLE = executable
+        mock_environ_get.return_value = f"/usr/bin:{executable.parent}:/bin"
 
         assert self.service._is_path_configured() is True
 
@@ -113,6 +197,24 @@ class TestUVService:
         assert "PATH настроен: нет" in status
         mock_run.assert_any_call([str(executable), "--version"], check=False)
 
+    @patch("os.environ.get")
+    @patch("app.services.uv.run")
+    def test_get_status_reports_path_configured_for_resolved_uv_directory(
+        self, mock_run, mock_environ_get, tmp_path
+    ):
+        executable = tmp_path / "bin" / "uv"
+        executable.parent.mkdir()
+        executable.touch()
+        self.service.UV_EXECUTABLE = executable
+        mock_environ_get.return_value = f"/usr/bin:{executable.parent}:/bin"
+        mock_run.return_value = Mock(returncode=0, stdout="uv 0.11.2\n")
+
+        status = self.service.get_status()
+
+        assert "Статус установки: 🟢 установлен" in status
+        assert "Версия uv: uv 0.11.2" in status
+        assert "PATH настроен: да" in status
+
     def test_get_status_returns_not_installed_when_uv_is_missing(self):
         with patch.object(UVService, "_is_uv_installed", return_value=False):
             status = self.service.get_status()
@@ -130,7 +232,11 @@ class TestUVService:
         self.service.UV_EXECUTABLE = executable
         mock_run.return_value = Mock(returncode=0, stdout="uv 0.7.0\n")
 
-        result = self.service.install()
+        with (
+            patch.object(UVService, "_source_uv_env", return_value=False),
+            patch.object(UVService, "_ensure_global_uv_symlinks", return_value=True),
+        ):
+            result = self.service.install()
 
         assert result is True
         version_calls = [
@@ -140,7 +246,8 @@ class TestUVService:
         ]
         assert version_calls
         assert not any(
-            "uv_install.sh" in " ".join(call.args[0]) for call in mock_run.call_args_list
+            "uv_install.sh" in " ".join(call.args[0])
+            for call in mock_run.call_args_list
         )
 
     @patch("app.services.uv.logger")
@@ -154,18 +261,27 @@ class TestUVService:
         self.service.UV_EXECUTABLE = executable
         mock_run.return_value = Mock(returncode=0, stdout="uv 0.7.0\n")
 
-        result = self.service.install()
+        with (
+            patch.object(UVService, "_source_uv_env", return_value=False),
+            patch.object(UVService, "_ensure_global_uv_symlinks", return_value=True),
+        ):
+            result = self.service.install()
 
         assert result is True
         mock_logger.warning.assert_any_call(
-            "⚠️ ~/.local/bin не в PATH. Добавьте в ~/.bashrc или ~/.zshrc:"
+            f"⚠️ {tmp_path} не в PATH. Добавьте в ~/.bashrc или ~/.zshrc:"
         )
 
     def test_install_already_installed(self, mock_subprocess_result):
         """Тест установки uv когда он уже установлен"""
         version_mock = mock_subprocess_result(returncode=0, stdout="uv 0.2.4")
 
-        with patch("app.services.uv.run") as mock_run, patch("os.environ.get") as mock_environ_get:
+        with (
+            patch("app.services.uv.run") as mock_run,
+            patch("os.environ.get") as mock_environ_get,
+            patch.object(UVService, "_source_uv_env", return_value=False),
+            patch.object(UVService, "_ensure_global_uv_symlinks", return_value=True),
+        ):
             # Mock PATH to not contain the UV path so _add_to_path_if_needed returns False
             mock_environ_get.return_value = (
                 "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
@@ -177,63 +293,109 @@ class TestUVService:
             # Повторная проверка версии допустима для идемпотентной установки.
             # So we expect 2 calls: one for the initial check and one from _add_to_path_if_needed
             assert mock_run.call_count == 2
-            mock_run.assert_any_call(self.service._get_uv_command("--version"), check=False)
+            mock_run.assert_any_call(
+                self.service._get_uv_command("--version"), check=False
+            )
 
     @patch("app.services.uv.run")
     def test_uninstall_not_installed(self, mock_run):
         """Тест удаления uv когда он не установлен"""
-        # First call to check if installed returns failure, second call to check after removal also fails
-        mock_run.side_effect = [Mock(returncode=1), Mock(returncode=1)]
+        binary_targets = (
+            Path("/root/.local/bin/uv"),
+            Path("/root/.local/bin/uvx"),
+            Path("/root/.local/bin/uvw"),
+        )
+        mock_run.side_effect = [
+            Mock(returncode=1, stdout=""),
+            Mock(returncode=0, stdout=""),
+        ]
 
-        self.service.uninstall()
+        with patch.object(
+            UVService, "_get_uv_binary_targets", return_value=binary_targets
+        ):
+            assert self.service.uninstall() is True
 
-        # Should try to check if uv is installed first
         mock_run.assert_any_call(self.service._get_uv_command("--version"), check=False)
+        mock_run.assert_any_call(
+            ["rm", "-f", *(str(path) for path in binary_targets)],
+            check=False,
+        )
 
     def test_install_first_time(self, mock_subprocess_result):
         """Тест установки uv при первом запуске"""
-        # Setup to simulate uv not being installed initially, then getting installed
         side_effects = [
             mock_subprocess_result(returncode=1),  # uv --version fails (not installed)
-            mock_subprocess_result(returncode=0, stdout="Downloaded successfully"),  # curl success
-            mock_subprocess_result(returncode=0, stdout="Installation completed"),  # bash success
-            mock_subprocess_result(returncode=0, stdout=""),  # rm uv_install.sh
+            mock_subprocess_result(returncode=0, stdout="curl installed"),  # apt curl
+            mock_subprocess_result(
+                returncode=0, stdout="Installation completed"
+            ),  # install
             mock_subprocess_result(
                 returncode=0, stdout="uv 0.2.4"
             ),  # uv --version success after install
+            mock_subprocess_result(
+                returncode=0, stdout="uv 0.2.4"
+            ),  # final version check
         ]
 
         with (
             patch("app.services.uv.run") as mock_run,
             patch("os.environ.get", return_value="/some/path"),
+            patch.object(UVService, "_source_uv_env", return_value=True),
+            patch.object(UVService, "_ensure_global_uv_symlinks", return_value=True),
         ):
             mock_run.side_effect = side_effects
 
-            self.service.install()
+            assert self.service.install() is True
+            mock_run.assert_any_call(
+                ["bash", "-lc", f"curl -LsSf {self.service.UV_INSTALL_URL} | sh"],
+                check=False,
+                env=self.service._get_shell_env(),
+            )
 
-            # Verify the sequence of calls
-            assert mock_run.call_count >= 3  # At least check version, download, install
-
-    def test_install_continues_when_curl_package_install_warns(self, mock_subprocess_result):
+    def test_install_continues_when_curl_package_install_warns(
+        self, mock_subprocess_result
+    ):
         side_effects = [
             mock_subprocess_result(returncode=1, stdout=""),  # uv not installed
             mock_subprocess_result(
                 returncode=1, stdout="curl already installed"
             ),  # apt install curl
-            mock_subprocess_result(returncode=0, stdout="downloaded"),  # curl download
             mock_subprocess_result(returncode=0, stdout="installed"),  # sh installer
-            mock_subprocess_result(returncode=0, stdout=""),  # rm installer
-            mock_subprocess_result(returncode=0, stdout="uv 0.8.0"),  # final install check
-            mock_subprocess_result(returncode=0, stdout="uv 0.8.0"),  # final version check
+            mock_subprocess_result(
+                returncode=0, stdout="uv 0.8.0"
+            ),  # final install check
+            mock_subprocess_result(
+                returncode=0, stdout="uv 0.8.0"
+            ),  # final version check
         ]
 
         with (
             patch("app.services.uv.run") as mock_run,
             patch("os.environ.get", return_value="/root/.local/bin:/usr/bin"),
+            patch.object(UVService, "_source_uv_env", return_value=True),
+            patch.object(UVService, "_ensure_global_uv_symlinks", return_value=True),
         ):
             mock_run.side_effect = side_effects
 
             assert self.service.install() is True
+
+    def test_install_returns_false_when_global_symlink_publish_fails(
+        self, mock_subprocess_result
+    ):
+        side_effects = [
+            mock_subprocess_result(returncode=1, stdout=""),
+            mock_subprocess_result(returncode=0, stdout="curl installed"),
+            mock_subprocess_result(returncode=0, stdout="Installation completed"),
+        ]
+
+        with (
+            patch("app.services.uv.run") as mock_run,
+            patch.object(UVService, "_source_uv_env", return_value=True),
+            patch.object(UVService, "_ensure_global_uv_symlinks", return_value=False),
+        ):
+            mock_run.side_effect = side_effects
+
+            assert self.service.install() is False
 
     # Пропускаем этот тест, так как сложно мокировать все вызовы в методе удаления
 
@@ -314,37 +476,95 @@ class TestUVService:
                 # Should log info that uv is already removed
                 mock_logger.info.assert_called()
 
-    def test_uninstall_permission_error(self):
-        """Тест удаления uv с ошибкой PermissionError"""
-        with patch.object(UVService, "_is_uv_installed") as mock_is_installed:
-            mock_is_installed.return_value = True  # uv is installed
+    def test_uninstall_returns_false_when_uv_still_in_path(self, tmp_path):
+        binary_targets = (
+            tmp_path / "uv",
+            tmp_path / "uvx",
+            tmp_path / "uvw",
+        )
+        for path in binary_targets:
+            path.touch()
 
-            with patch("app.services.uv.run") as mock_run:
-                mock_run.side_effect = [
-                    Mock(returncode=0, stdout="cache cleaned"),  # cache clean success
-                    Mock(returncode=0, stdout="/path/to/python"),  # python dir
-                    Mock(returncode=0, stdout="/path/to/tool"),  # tool dir
-                    Mock(returncode=0),  # rm success
-                    Mock(returncode=0),  # rm success
-                    Mock(returncode=1),  # final check failure
-                ]
+        def run_side_effect(command, check=False):
+            if command[:2] == [str(binary_targets[0]), "cache"]:
+                return Mock(returncode=0, stdout="cache cleaned")
+            if command[:2] == ["rm", "-f"]:
+                for raw_path in command[2:]:
+                    Path(raw_path).unlink(missing_ok=True)
+                return Mock(returncode=0, stdout="")
+            raise AssertionError(f"Unexpected command: {command}")
 
-                with patch.object(UVService, "_get_uv_paths") as mock_get_paths:
-                    mock_get_paths.return_value = {
-                        "python": "/path/to/python",
-                        "tool": "/path/to/tool",
-                    }
+        with (
+            patch.object(UVService, "_is_uv_installed", return_value=True),
+            patch.object(UVService, "_get_uv_paths", return_value=None),
+            patch.object(
+                UVService, "_get_uv_binary_targets", return_value=binary_targets
+            ),
+            patch.object(UVService, "ENV_FILE", tmp_path / "env"),
+            patch("app.services.uv.run", side_effect=run_side_effect),
+            patch("app.services.uv.shutil.which", return_value="/usr/bin/uv"),
+        ):
+            assert self.service.uninstall() is False
 
-                    with patch.object(UVService, "ENV_FILE") as mock_env_file:
-                        mock_env_file.exists.return_value = False
+    def test_uninstall_removes_all_uv_binaries_found_in_path(self, tmp_path):
+        local_bin = tmp_path / ".local" / "bin"
+        local_bin.mkdir(parents=True)
+        usr_local_bin = tmp_path / "usr" / "local" / "bin"
+        usr_local_bin.mkdir(parents=True)
 
-                        with patch("app.services.uv.logger"):
-                            # Simulate permission error during actual removal process
-                            with patch("os.remove") as mock_remove:
-                                mock_remove.side_effect = PermissionError("Permission denied")
+        path_binaries = (
+            local_bin / "uv",
+            local_bin / "uvx",
+            local_bin / "uvw",
+            usr_local_bin / "uv",
+            usr_local_bin / "uvx",
+            usr_local_bin / "uvw",
+        )
+        for path in path_binaries:
+            path.touch()
 
-                                # Call uninstall method
-                                self.service.uninstall()
+        self.service.UV_EXECUTABLE = local_bin / "uv"
+        self.service.UVX_EXECUTABLE = local_bin / "uvx"
+        self.service.UVW_EXECUTABLE = local_bin / "uvw"
+        env_file = local_bin / "env"
+        env_file.touch()
+
+        def run_side_effect(command, check=False):
+            if command[:2] == [str(local_bin / "uv"), "cache"]:
+                return Mock(returncode=0, stdout="cache cleaned")
+            if command[:2] == ["rm", "-f"]:
+                for raw_path in command[2:]:
+                    Path(raw_path).unlink(missing_ok=True)
+                return Mock(returncode=0, stdout="")
+            raise AssertionError(f"Unexpected command: {command}")
+
+        with (
+            patch.object(UVService, "_is_uv_installed", return_value=True),
+            patch.object(UVService, "_get_uv_paths", return_value=None),
+            patch.object(UVService, "ENV_FILE", env_file),
+            patch.dict(
+                os.environ,
+                {"PATH": f"{local_bin}:{usr_local_bin}:/usr/bin"},
+                clear=False,
+            ),
+            patch("app.services.uv.run", side_effect=run_side_effect) as mock_run,
+            patch(
+                "app.services.uv.shutil.which",
+                side_effect=lambda _: (
+                    str(local_bin / "uv") if (local_bin / "uv").exists() else None
+                ),
+            ),
+        ):
+            assert self.service.uninstall() is True
+
+        mock_run.assert_any_call(
+            [
+                "rm",
+                "-f",
+                *(str(path) for path in sorted(path_binaries, key=lambda p: str(p))),
+            ],
+            check=False,
+        )
 
     def test_uninstall_general_exception(self):
         """Тест удаления uv с общей ошибкой"""
@@ -361,26 +581,105 @@ class TestUVService:
                     # Should log exception
                     mock_logger.exception.assert_called()
 
-    def test_uninstall_succeeds_with_env_cleanup_and_missing_paths(self):
-        with (
-            patch.object(UVService, "_is_uv_installed", side_effect=[True, False]),
-            patch.object(UVService, "_get_uv_paths", return_value=None),
-            patch.object(UVService, "ENV_FILE") as mock_env_file,
-            patch("app.services.uv.run") as mock_run,
-        ):
-            mock_env_file.exists.return_value = True
-            mock_run.side_effect = [
-                Mock(returncode=1, stdout="cache cleanup warning"),
-                Mock(returncode=0, stdout=""),
-                Mock(returncode=0, stdout=""),
-            ]
+    def test_uninstall_succeeds_with_env_cleanup_and_missing_paths(self, tmp_path):
+        binary_targets = (
+            tmp_path / "uv",
+            tmp_path / "uvx",
+            tmp_path / "uvw",
+        )
+        for path in binary_targets:
+            path.touch()
 
+        env_file = tmp_path / "env"
+        env_file.touch()
+        self.service.UV_EXECUTABLE = binary_targets[0]
+
+        def run_side_effect(command, check=False):
+            if command[:2] == [str(binary_targets[0]), "cache"]:
+                return Mock(returncode=1, stdout="cache cleanup warning")
+            if command[:2] == ["rm", "-f"]:
+                for raw_path in command[2:]:
+                    Path(raw_path).unlink(missing_ok=True)
+                return Mock(returncode=0, stdout="")
+            raise AssertionError(f"Unexpected command: {command}")
+
+        with (
+            patch.object(UVService, "_is_uv_installed", return_value=True),
+            patch.object(UVService, "_get_uv_paths", return_value=None),
+            patch.object(
+                UVService, "_get_uv_binary_targets", return_value=binary_targets
+            ),
+            patch.object(UVService, "_get_uv_binaries_from_path", return_value=()),
+            patch.object(UVService, "ENV_FILE", env_file),
+            patch("app.services.uv.run", side_effect=run_side_effect) as mock_run,
+            patch(
+                "app.services.uv.shutil.which",
+                side_effect=lambda _: (
+                    str(binary_targets[0]) if binary_targets[0].exists() else None
+                ),
+            ),
+        ):
             assert self.service.uninstall() is True
+
+        mock_run.assert_any_call(
+            ["rm", "-f", *(str(path) for path in binary_targets)],
+            check=False,
+        )
+        mock_run.assert_any_call(["rm", "-f", str(env_file)], check=False)
+
+    def test_uninstall_succeeds_with_custom_install_dir_and_removes_uvw(self, tmp_path):
+        custom_bin_dir = tmp_path / "bin"
+        custom_bin_dir.mkdir()
+        env_file = custom_bin_dir / "env"
+        env_file.touch()
+
+        binary_targets = (
+            custom_bin_dir / "uv",
+            custom_bin_dir / "uvx",
+            custom_bin_dir / "uvw",
+        )
+        for path in binary_targets:
+            path.touch()
+        self.service.UV_EXECUTABLE = tmp_path / ".local" / "bin" / "uv"
+
+        def run_side_effect(command, check=False):
+            if command[:2] == [str(binary_targets[0]), "cache"]:
+                return Mock(returncode=0, stdout="cache cleaned")
+            if command[:2] == ["rm", "-f"]:
+                for raw_path in command[2:]:
+                    Path(raw_path).unlink(missing_ok=True)
+                return Mock(returncode=0, stdout="")
+            raise AssertionError(f"Unexpected command: {command}")
+
+        with (
+            patch.object(UVService, "_is_uv_installed", return_value=True),
+            patch.object(UVService, "_get_uv_paths", return_value=None),
+            patch.object(
+                UVService, "_get_uv_binary_targets", return_value=binary_targets
+            ),
+            patch.object(UVService, "_get_uv_binaries_from_path", return_value=()),
+            patch.object(UVService, "ENV_FILE", env_file),
+            patch("app.services.uv.run", side_effect=run_side_effect) as mock_run,
+            patch(
+                "app.services.uv.shutil.which",
+                side_effect=lambda _: (
+                    str(binary_targets[0]) if binary_targets[0].exists() else None
+                ),
+            ),
+        ):
+            assert self.service.uninstall() is True
+
+        mock_run.assert_any_call(
+            ["rm", "-f", *(str(path) for path in binary_targets)],
+            check=False,
+        )
 
     def test_uninstall_returns_false_on_permission_error_from_run(self):
         with (
             patch.object(UVService, "_is_uv_installed", return_value=True),
-            patch("app.services.uv.run", side_effect=PermissionError("Permission denied")),
+            patch(
+                "app.services.uv.run", side_effect=PermissionError("Permission denied")
+            ),
         ):
             assert self.service.uninstall() is False
 
