@@ -85,6 +85,8 @@ The requested mode should be one of:
 
 ## Versioning and tags
 
+- Before creating any commit, explicitly check whether the staged change set warrants a version bump.
+- Make that version-bump decision first, then create the commit.
 - When a logically complete change set should produce a release version bump, update the project version with `uv version --bump ...`.
 - Use semantic versioning logic:
   - patch: fixes, small compatible improvements, docs-only releases only if the project policy requires it
@@ -98,3 +100,4 @@ The requested mode should be one of:
 - Keep the version bump in the same logical commit set or release step as the change it represents.
 - When a release bump is made, create a matching Git tag for that version unless the user explicitly does not want tagging.
 - Do not bump the version for every commit by default; do it only when the change logically represents a release-worthy increment.
+- If no bump is needed, keep the commit versionless by design rather than skipping the check.
