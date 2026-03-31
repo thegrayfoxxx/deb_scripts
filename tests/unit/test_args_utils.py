@@ -12,6 +12,11 @@ class TestArgsUtils:
         assert parsed.log_level == "info"
         assert parsed.install is None
         assert parsed.uninstall is None
+        assert parsed.activate is None
+        assert parsed.deactivate is None
+        assert parsed.status is None
+        assert parsed.info is None
+        assert parsed.all is False
 
     def test_parse_args_accepts_log_level_and_install_codes(self):
         parsed = args.parse_args(["--log-level", "debug", "--install", "1", "6"])
@@ -26,6 +31,46 @@ class TestArgsUtils:
         assert parsed.log_level == "info"
         assert parsed.install is None
         assert parsed.uninstall == ["2", "5"]
+
+    def test_parse_args_accepts_activate_deactivate_status_and_info_codes(self):
+        parsed = args.parse_args(
+            [
+                "--activate",
+                "1",
+                "2",
+                "--deactivate",
+                "4",
+                "--status",
+                "3",
+                "6",
+                "--info",
+                "5",
+            ]
+        )
+
+        assert parsed.activate == ["1", "2"]
+        assert parsed.deactivate == ["4"]
+        assert parsed.status == ["3", "6"]
+        assert parsed.info == ["5"]
+        assert parsed.all is False
+
+    def test_parse_args_accepts_all_flag_for_non_interactive_mode(self):
+        parsed = args.parse_args(["--status", "--all"])
+
+        assert parsed.status == []
+        assert parsed.all is True
+
+    def test_parse_args_rejects_empty_non_interactive_operation_without_all(self):
+        with pytest.raises(SystemExit) as exc:
+            args.parse_args(["--status"])
+
+        assert exc.value.code == 2
+
+    def test_parse_args_rejects_codes_together_with_all(self):
+        with pytest.raises(SystemExit) as exc:
+            args.parse_args(["--status", "1", "--all"])
+
+        assert exc.value.code == 2
 
     def test_parse_args_rejects_invalid_log_level(self):
         with patch("sys.argv", ["script_name", "--log-level", "broken"]):
@@ -44,3 +89,8 @@ class TestArgsUtils:
         help_output = capsys.readouterr().out
         assert "1=UFW" in help_output
         assert "6=UV" in help_output
+        assert "--activate" in help_output
+        assert "--deactivate" in help_output
+        assert "--status" in help_output
+        assert "--info" in help_output
+        assert "--all" in help_output

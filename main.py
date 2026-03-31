@@ -7,6 +7,19 @@ from app.interfaces.menu.run import run_interactive_script
 
 logger = get_logger(__name__)
 
+NON_INTERACTIVE_OPTIONS = (
+    "install",
+    "uninstall",
+    "activate",
+    "deactivate",
+    "status",
+    "info",
+)
+
+
+def _has_non_interactive_request(args) -> bool:
+    return any(getattr(args, option_name) is not None for option_name in NON_INTERACTIVE_OPTIONS)
+
 
 def main(argv: list[str] | None = None):
     args = parse_args(argv)
@@ -15,7 +28,7 @@ def main(argv: list[str] | None = None):
     check_root()
     update_os()
 
-    if args.install or args.uninstall:
+    if _has_non_interactive_request(args):
         return 0 if run_non_interactive_commands(args) else 1
 
     run_interactive_script()

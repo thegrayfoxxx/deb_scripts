@@ -150,6 +150,10 @@ def format_service_codes_help() -> str:
     return ", ".join(entry.cli_label for entry in SERVICE_REGISTRY)
 
 
+def get_all_service_codes() -> list[str]:
+    return [entry.code for entry in SERVICE_REGISTRY]
+
+
 def build_main_menu_items() -> list[MenuItem]:
     items: list[MenuItem] = []
 

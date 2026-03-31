@@ -1,7 +1,8 @@
 from collections.abc import Sequence
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 
+@runtime_checkable
 class ManagedServiceProtocol(Protocol):
     def install(self) -> bool: ...
 
@@ -14,6 +15,7 @@ class ManagedServiceProtocol(Protocol):
     def get_info_lines(self) -> Sequence[str]: ...
 
 
+@runtime_checkable
 class ActivatableServiceProtocol(ManagedServiceProtocol, Protocol):
     def activate(self) -> bool: ...
 
