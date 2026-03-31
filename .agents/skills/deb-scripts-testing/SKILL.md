@@ -49,6 +49,34 @@ Examples:
 ./.venv/bin/pytest -q tests/unit/test_cli_mode.py tests/unit/test_main.py
 ```
 
+## Type checks
+
+Run `uvx ty check` when a change affects:
+
+- service contracts or protocols
+- shared helpers used across multiple modules
+- public function signatures
+- menu/CLI wiring where mocks and runtime types can drift
+
+Prefer checking only the touched scope when the change is small:
+
+```bash
+uvx ty check app/services/protocols.py app/utils/service_registry.py
+uvx ty check app/services app/interfaces
+```
+
+Use a broader pass when refactoring shared contracts or lifecycle APIs:
+
+```bash
+uvx ty check app tests
+```
+
+Treat `ty` as a validation step, not a formatting step:
+
+- run it after code edits and before final verification
+- keep fixes focused on real type drift, not broad stylistic rewrites
+- if `ty` reports unrelated pre-existing issues outside the touched scope, do not broaden the task unless asked
+
 ## Rules
 
 - Do not broaden test edits to unrelated failures unless asked.

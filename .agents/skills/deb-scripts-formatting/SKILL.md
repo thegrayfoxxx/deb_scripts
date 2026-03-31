@@ -11,6 +11,7 @@ Use this skill whenever Python files were added or changed.
 
 - Minimum Python version is `3.12`.
 - Sort imports with Ruff.
+- Run Ruff lint checks.
 - Format code with Ruff.
 - Maximum line length is `99`.
 
@@ -20,6 +21,7 @@ Format the whole repository:
 
 ```bash
 uvx ruff check --select I --fix . --line-length 99
+uvx ruff check --fix . --line-length 99
 uvx ruff format . --line-length 99
 ```
 
@@ -27,12 +29,14 @@ Format specific files:
 
 ```bash
 uvx ruff check --select I --fix path/to/file.py --line-length 99
+uvx ruff check --fix path/to/file.py --line-length 99
 uvx ruff format path/to/file.py --line-length 99
 ```
 
 ## Usage rules
 
-- Run import sorting before formatting.
+- Run import sorting before general Ruff checks and formatting.
+- Run `uvx ruff check --fix` after import sorting to catch and auto-fix non-formatting lint issues where safe.
 - Prefer formatting only touched files when the change is small.
 - If Ruff reports unrelated pre-existing issues outside the touched scope, do not broaden the task unless asked.
 - Keep formatting changes separate from behavioral refactors in your reasoning and validation.
