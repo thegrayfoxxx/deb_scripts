@@ -363,43 +363,38 @@ class TestBBRService:
 
         assert result is False
 
-    @patch("app.services.bbr.run")
-    @patch("app.services.bbr.BBRService._is_bbr_module_loaded")
-    @patch("app.services.bbr.BBRService._write_config_file")
-    def test_enable_bbr_file_not_found_error(self, mock_write_config, mock_is_loaded, mock_run):
+    def test_enable_bbr_file_not_found_error(self):
         """Тест включения BBR с ошибкой FileNotFoundError"""
-        mock_run.side_effect = FileNotFoundError("Command not found")
-
-        with patch("app.services.bbr.logger") as mock_logger:
+        with (
+            patch.object(
+                self.service, "install", side_effect=FileNotFoundError("Command not found")
+            ),
+            patch("app.services.bbr.logger") as mock_logger,
+        ):
             self.service.activate()
 
-            # Should log the error
             mock_logger.error.assert_called()
 
-    @patch("app.services.bbr.run")
-    @patch("app.services.bbr.BBRService._is_bbr_module_loaded")
-    @patch("app.services.bbr.BBRService._write_config_file")
-    def test_enable_bbr_permission_error(self, mock_write_config, mock_is_loaded, mock_run):
+    def test_enable_bbr_permission_error(self):
         """Тест включения BBR с ошибкой PermissionError"""
-        mock_run.side_effect = PermissionError("Permission denied")
-
-        with patch("app.services.bbr.logger") as mock_logger:
+        with (
+            patch.object(
+                self.service, "install", side_effect=PermissionError("Permission denied")
+            ),
+            patch("app.services.bbr.logger") as mock_logger,
+        ):
             self.service.activate()
 
-            # Should log the error
             mock_logger.error.assert_called()
 
-    @patch("app.services.bbr.run")
-    @patch("app.services.bbr.BBRService._is_bbr_module_loaded")
-    @patch("app.services.bbr.BBRService._write_config_file")
-    def test_enable_bbr_general_exception(self, mock_write_config, mock_is_loaded, mock_run):
+    def test_enable_bbr_general_exception(self):
         """Тест включения BBR с общей ошибкой"""
-        mock_write_config.side_effect = Exception("General error")
-
-        with patch("app.services.bbr.logger") as mock_logger:
+        with (
+            patch.object(self.service, "install", side_effect=Exception("General error")),
+            patch("app.services.bbr.logger") as mock_logger,
+        ):
             self.service.activate()
 
-            # Should log the exception
             mock_logger.exception.assert_called()
 
     @patch("app.services.bbr.run")
