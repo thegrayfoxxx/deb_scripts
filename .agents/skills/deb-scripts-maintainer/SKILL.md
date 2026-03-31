@@ -42,14 +42,19 @@ All services should expose:
 - `uninstall()`
 - `is_installed()`
 - `get_status()`
+- `get_info_lines()`
 
-Add `is_active()` when package presence is not enough to describe runtime health.
+Activatable services should also expose:
 
-The external API should stay uniform even if older compatibility helpers still exist internally.
+- `activate()`
+- `deactivate()`
+- `is_active()`
+
+Use `ManagedServiceProtocol` and `ActivatableServiceProtocol` in `app/services/protocols.py` as the source of truth for service capabilities.
 
 ## CLI and interactive conventions
 
-- Service codes are centralized in `app/interfaces/cli/non_interactive.py`.
+- Service codes and menu wiring are centralized in `app/core/service_registry.py`.
 - If any requested operation fails, the CLI should exit non-zero.
 - Interactive menus should use the loop-based helpers from `app/interfaces/menu/menu_utils.py`.
 - Prefer `build_standard_service_menu_items(...)` for service submenus.

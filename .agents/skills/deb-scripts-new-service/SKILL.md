@@ -31,16 +31,18 @@ Add integration or system tests when the behavior interacts with real subprocess
 - Follow the stable public contract from `deb-scripts-service-pattern`.
 - Use shared logging and subprocess helpers.
 - Keep commands idempotent and safe to rerun.
+- Add `get_info_lines()` to every service.
+- Add `activate()/deactivate()/is_active()` only for services whose runtime state differs from package installation.
 
 ## Wiring checklist
 
 Update:
 
-- `app/interfaces/menu/run.py`
-- `app/interfaces/cli/non_interactive.py`
+- `app/core/service_registry.py`
 - `app/bootstrap/args.py`
+- `app/interfaces/cli/non_interactive.py`
 
-Make sure the service code receives a unique numeric code in the non-interactive CLI map.
+Make sure the new service gets a unique numeric code and labels in the service registry entry.
 
 ## Interactive menu checklist
 
@@ -48,6 +50,7 @@ Make sure the service code receives a unique numeric code in the non-interactive
 - Keep `00` for service information.
 - Keep `0` for returning back.
 - Show status through shared status utilities.
+- Source service info text from `service.get_info_lines()`, not a duplicated local constant.
 - Do not recurse back into the main menu.
 - Follow `deb-scripts-cli-ux` for wording and prompt design.
 

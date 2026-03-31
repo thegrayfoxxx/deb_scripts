@@ -15,8 +15,15 @@ Services should expose:
 - `uninstall()`
 - `is_installed()`
 - `get_status()`
+- `get_info_lines()`
 
-Add `is_active()` only when runtime health differs from package presence.
+Activatable services should also expose:
+
+- `activate()`
+- `deactivate()`
+- `is_active()`
+
+Use `app/services/protocols.py` as the source of truth for the current contracts.
 
 ## Structure
 
@@ -30,11 +37,13 @@ Add `is_active()` only when runtime health differs from package presence.
 - A no-op success should still return `True`.
 - Catch operational exceptions, log context, and return `False` on failure.
 - Prefer one final verification before reporting success.
+- `activate()` and `deactivate()` should be idempotent for activatable services.
 
 ## Status rules
 
 - `is_installed()` should answer a boolean question cheaply and predictably.
 - `get_status()` should provide a short multi-line snapshot for humans.
+- `get_info_lines()` should return operator-facing info used by the menu layer.
 - Do not mix status reads with warning-heavy side effects.
 
 ## Integration rules
