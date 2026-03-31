@@ -6,6 +6,7 @@ import main
 
 def test_main_updates_system_before_interactive_mode():
     args = SimpleNamespace(
+        lang="ru",
         log_level="info",
         install=None,
         uninstall=None,
@@ -21,11 +22,13 @@ def test_main_updates_system_before_interactive_mode():
         patch("main.update_os") as mock_update_os,
         patch("main.run_interactive_script") as mock_interactive,
         patch("main.parse_args", return_value=args),
+        patch("main.set_locale") as mock_set_locale,
         patch("main.set_default_console_level") as mock_set_level,
     ):
         result = main.main()
 
     assert result == 0
+    mock_set_locale.assert_called_once_with("ru")
     mock_set_level.assert_called_once_with("info")
     mock_check_root.assert_called_once()
     mock_update_os.assert_called_once()
@@ -34,6 +37,7 @@ def test_main_updates_system_before_interactive_mode():
 
 def test_main_updates_system_before_non_interactive_mode():
     args = SimpleNamespace(
+        lang="ru",
         log_level="info",
         install=["3"],
         uninstall=None,
@@ -49,11 +53,13 @@ def test_main_updates_system_before_non_interactive_mode():
         patch("main.update_os") as mock_update_os,
         patch("main.run_non_interactive_commands", return_value=True) as mock_non_interactive,
         patch("main.parse_args", return_value=args),
+        patch("main.set_locale") as mock_set_locale,
         patch("main.set_default_console_level") as mock_set_level,
     ):
         result = main.main()
 
     assert result == 0
+    mock_set_locale.assert_called_once_with("ru")
     mock_set_level.assert_called_once_with("info")
     mock_check_root.assert_called_once()
     mock_update_os.assert_called_once()
@@ -62,6 +68,7 @@ def test_main_updates_system_before_non_interactive_mode():
 
 def test_main_returns_non_zero_when_non_interactive_operation_fails():
     args = SimpleNamespace(
+        lang="ru",
         log_level="info",
         install=["3"],
         uninstall=None,
@@ -77,11 +84,13 @@ def test_main_returns_non_zero_when_non_interactive_operation_fails():
         patch("main.update_os") as mock_update_os,
         patch("main.run_non_interactive_commands", return_value=False) as mock_non_interactive,
         patch("main.parse_args", return_value=args),
+        patch("main.set_locale") as mock_set_locale,
         patch("main.set_default_console_level") as mock_set_level,
     ):
         result = main.main()
 
     assert result == 1
+    mock_set_locale.assert_called_once_with("ru")
     mock_set_level.assert_called_once_with("info")
     mock_check_root.assert_called_once()
     mock_update_os.assert_called_once()
@@ -90,6 +99,7 @@ def test_main_returns_non_zero_when_non_interactive_operation_fails():
 
 def test_main_treats_status_request_as_non_interactive_mode():
     args = SimpleNamespace(
+        lang="ru",
         log_level="info",
         install=None,
         uninstall=None,
@@ -106,11 +116,13 @@ def test_main_treats_status_request_as_non_interactive_mode():
         patch("main.run_non_interactive_commands", return_value=True) as mock_non_interactive,
         patch("main.run_interactive_script") as mock_interactive,
         patch("main.parse_args", return_value=args),
+        patch("main.set_locale") as mock_set_locale,
         patch("main.set_default_console_level") as mock_set_level,
     ):
         result = main.main()
 
     assert result == 0
+    mock_set_locale.assert_called_once_with("ru")
     mock_set_level.assert_called_once_with("info")
     mock_check_root.assert_called_once()
     mock_update_os.assert_called_once()
@@ -134,6 +146,7 @@ def test_has_non_interactive_request_detects_all_mode_flags():
 
 def test_main_treats_status_all_request_as_non_interactive_mode():
     args = SimpleNamespace(
+        lang="ru",
         log_level="info",
         install=None,
         uninstall=None,
@@ -150,11 +163,13 @@ def test_main_treats_status_all_request_as_non_interactive_mode():
         patch("main.run_non_interactive_commands", return_value=True) as mock_non_interactive,
         patch("main.run_interactive_script") as mock_interactive,
         patch("main.parse_args", return_value=args),
+        patch("main.set_locale") as mock_set_locale,
         patch("main.set_default_console_level") as mock_set_level,
     ):
         result = main.main()
 
     assert result == 0
+    mock_set_locale.assert_called_once_with("ru")
     mock_set_level.assert_called_once_with("info")
     mock_check_root.assert_called_once()
     mock_update_os.assert_called_once()

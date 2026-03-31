@@ -39,6 +39,7 @@ sudo ./run.sh --uninstall 3 4
 sudo ./run.sh --activate 1 2 4
 sudo ./run.sh --status --all
 sudo ./run.sh --info 1 4 6
+sudo ./run.sh --lang en --status 1 4
 sudo ./run.sh --log-level debug --install 2 4
 ```
 
@@ -50,11 +51,13 @@ Supported non-interactive flags:
 - `--deactivate [codes...]`
 - `--status [codes...]`
 - `--info [codes...]`
+- `--lang {ru,en}`
 - `--all`
 
 Notes:
 
 - use `--all` with one non-interactive operation, for example `--status --all`
+- the default interface language is `ru`; switch to English with `--lang en`
 - activatable services are `UFW`, `BBR`, and `Fail2Ban`
 - `TrafficGuard`, `Docker`, and `UV` support install/uninstall plus status/info
 
@@ -90,7 +93,7 @@ The language-specific docs contain setup, usage, logging, development, and testi
 
 Latest full run:
 
-- `375 passed`
+- `391 passed`
 - `6 skipped`
 - coverage: `91%`
 

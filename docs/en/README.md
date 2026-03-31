@@ -43,6 +43,7 @@ Arguments:
 - `--deactivate [codes...]`
 - `--status [codes...]`
 - `--info [codes...]`
+- `--lang {ru,en}`
 - `--all`
 
 Examples:
@@ -53,12 +54,14 @@ sudo ./run.sh --uninstall 3 4
 sudo ./run.sh --activate 1 2 4
 sudo ./run.sh --status --all
 sudo ./run.sh --info 1 4 6
+sudo ./run.sh --lang en --status 1 4
 sudo ./run.sh --log-level debug --install 2 4
 ```
 
 Notes:
 
 - use `--all` with one explicit non-interactive operation, for example `--status --all`
+- the default interface language is `ru`; switch to English with `--lang en`
 - activatable services are `UFW`, `BBR`, and `Fail2Ban`
 - `Docker`, `TrafficGuard`, and `UV` support install/uninstall plus `status/info`
 
@@ -143,6 +146,6 @@ docker compose run --rm test pytest -q --cov=app --cov=main --cov-report=term-mi
 
 Latest full run:
 
-- `375 passed`
+- `391 passed`
 - `6 skipped`
 - coverage: `91%`

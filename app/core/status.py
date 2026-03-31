@@ -1,9 +1,6 @@
 from collections.abc import Sequence
 
-INSTALL_OK_TEXT = "установлен"
-INSTALL_FAIL_TEXT = "не установлен"
-ACTIVATION_OK_TEXT = "активирован"
-ACTIVATION_FAIL_TEXT = "не активирован"
+from app.i18n.locale import t
 
 
 def status_badge(is_ok: bool, ok_text: str, fail_text: str) -> str:
@@ -13,12 +10,12 @@ def status_badge(is_ok: bool, ok_text: str, fail_text: str) -> str:
 
 def installation_status_badge(is_installed: bool) -> str:
     """Возвращает единый бейдж статуса установки."""
-    return status_badge(is_installed, INSTALL_OK_TEXT, INSTALL_FAIL_TEXT)
+    return status_badge(is_installed, t("common.installed"), t("common.not_installed"))
 
 
 def activation_status_badge(is_active: bool) -> str:
     """Возвращает единый бейдж статуса активации."""
-    return status_badge(is_active, ACTIVATION_OK_TEXT, ACTIVATION_FAIL_TEXT)
+    return status_badge(is_active, t("common.activated"), t("common.not_activated"))
 
 
 def format_status_snapshot(
@@ -28,10 +25,10 @@ def format_status_snapshot(
     details: Sequence[str] = (),
 ) -> str:
     """Форматирует единый диагностический снимок состояния сервиса."""
-    lines = [f"Статус установки: {installation_status_badge(installed)}"]
+    lines = [t("common.status_installation", status=installation_status_badge(installed))]
 
     if active is not None:
-        lines.append(f"Статус активации: {activation_status_badge(active)}")
+        lines.append(t("common.status_activation", status=activation_status_badge(active)))
 
     lines.extend(details)
     return "\n".join(lines)

@@ -43,6 +43,7 @@ sudo python3 main.py
 - `--deactivate [codes...]`
 - `--status [codes...]`
 - `--info [codes...]`
+- `--lang {ru,en}`
 - `--all`
 
 Примеры:
@@ -53,12 +54,14 @@ sudo ./run.sh --uninstall 3 4
 sudo ./run.sh --activate 1 2 4
 sudo ./run.sh --status --all
 sudo ./run.sh --info 1 4 6
+sudo ./run.sh --lang en --status 1 4
 sudo ./run.sh --log-level debug --install 2 4
 ```
 
 Примечания:
 
 - `--all` применяется к одной явно указанной non-interactive операции, например `--status --all`
+- язык интерфейса по умолчанию `ru`, для английского используйте `--lang en`
 - сервисы с отдельной активацией: `UFW`, `BBR`, `Fail2Ban`
 - `Docker`, `TrafficGuard` и `UV` поддерживают установку/удаление, а также `status/info`
 
@@ -143,6 +146,6 @@ docker compose run --rm test pytest -q --cov=app --cov=main --cov-report=term-mi
 
 Последний полный прогон:
 
-- `375 passed`
+- `391 passed`
 - `6 skipped`
 - покрытие: `91%`

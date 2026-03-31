@@ -3,6 +3,7 @@ from app.core.status import (
     activation_status_badge,
     installation_status_badge,
 )
+from app.i18n.locale import t
 from app.interfaces.menu.menu_utils import (
     MenuItem,
     prompt_service_submenu,
@@ -14,40 +15,58 @@ from app.services.ufw import UfwService
 
 logger = get_logger(__name__)
 
+PortGroupEntry = dict[str, str | list[str]]
+
 PORT_GROUPS = {
-    "1": {"name": "SSH", "ports": ["22"], "desc": "SSH (22, всегда разрешён)"},
-    "2": {
-        "name": "Web-сервер",
-        "ports": ["80", "443"],
-        "desc": "HTTP и HTTPS (80, 443)",
+    "1": {
+        "name_key": "menu.ufw.port_group.ssh_name",
+        "ports": ["22"],
+        "desc_key": "menu.ufw.port_group.ssh_desc",
     },
-    "3": {"name": "DNS", "ports": ["53"], "desc": "DNS (53)"},
+    "2": {
+        "name_key": "menu.ufw.port_group.web_name",
+        "ports": ["80", "443"],
+        "desc_key": "menu.ufw.port_group.web_desc",
+    },
+    "3": {
+        "name_key": "menu.ufw.port_group.dns_name",
+        "ports": ["53"],
+        "desc_key": "menu.ufw.port_group.dns_desc",
+    },
     "4": {
-        "name": "DHCP",
+        "name_key": "menu.ufw.port_group.dhcp_name",
         "ports": ["67", "68"],
-        "desc": "DHCP сервер и клиент (67, 68)",
+        "desc_key": "menu.ufw.port_group.dhcp_desc",
     },
     "5": {
-        "name": "Почта",
+        "name_key": "menu.ufw.port_group.mail_name",
         "ports": ["25", "587", "465", "143", "993", "110", "995"],
-        "desc": "SMTP, Submission, SMTPS, IMAP, IMAPS, POP3, POP3S (25, 587, 465, 143, 993, 110, 995)",
+        "desc_key": "menu.ufw.port_group.mail_desc",
     },
     "6": {
-        "name": "FTP",
+        "name_key": "menu.ufw.port_group.ftp_name",
         "ports": ["20", "21"],
-        "desc": "FTP данные и команды (20, 21)",
+        "desc_key": "menu.ufw.port_group.ftp_desc",
     },
     "7": {
-        "name": "REMNAWAVE NODE",
+        "name_key": "menu.ufw.port_group.remnawave_name",
         "ports": ["2222"],
-        "desc": "REMNAWAVE NODE (2222)",
+        "desc_key": "menu.ufw.port_group.remnawave_desc",
     },
-    "8": {"name": "MySQL", "ports": ["3306"], "desc": "MySQL (3306)"},
-    "9": {"name": "PostgreSQL", "ports": ["5432"], "desc": "PostgreSQL (5432)"},
+    "8": {
+        "name_key": "menu.ufw.port_group.mysql_name",
+        "ports": ["3306"],
+        "desc_key": "menu.ufw.port_group.mysql_desc",
+    },
+    "9": {
+        "name_key": "menu.ufw.port_group.postgres_name",
+        "ports": ["5432"],
+        "desc_key": "menu.ufw.port_group.postgres_desc",
+    },
     "10": {
-        "name": "Все группы",
+        "name_key": "menu.ufw.port_group.all_name",
         "ports": [],
-        "desc": "Все группы, кроме SSH",
+        "desc_key": "menu.ufw.port_group.all_desc",
     },
 }
 
@@ -69,54 +88,54 @@ def _build_menu_items(service: UfwService) -> list[MenuItem]:
     return [
         MenuItem(
             key="1",
-            label="1 - 📦 Установить UFW",
+            label=t("menu.ufw.install"),
             action=service.install,
             status_renderer=lambda status=install_status: status,
         ),
         MenuItem(
             key="2",
-            label="2 - ▶️ Активировать UFW (установит при необходимости)",
+            label=t("menu.ufw.activate"),
             action=service.activate,
             status_renderer=lambda status=active_status: status,
         ),
         MenuItem(
             key="3",
-            label="3 - ➕ Открыть порты из списка",
+            label=t("menu.ufw.open_list"),
             action=lambda: _open_specific_ports(service),
         ),
         MenuItem(
             key="4",
-            label="4 - ➖ Закрыть порты из списка",
+            label=t("menu.ufw.close_list"),
             action=lambda: _close_specific_ports(service),
         ),
         MenuItem(
             key="5",
-            label="5 - ➕ Открыть произвольный порт",
+            label=t("menu.ufw.open_custom"),
             action=lambda: _manage_custom_port(service, action="open"),
         ),
         MenuItem(
             key="6",
-            label="6 - ➖ Закрыть произвольный порт",
+            label=t("menu.ufw.close_custom"),
             action=lambda: _manage_custom_port(service, action="close"),
         ),
         MenuItem(
             key="7",
-            label="7 - 📊 Показать статус UFW",
+            label=t("menu.ufw.status"),
             action=lambda: print(service.get_status()),
         ),
         MenuItem(
             key="8",
-            label="8 - ⏹️  Отключить UFW",
+            label=t("menu.ufw.deactivate"),
             action=lambda: service.deactivate(confirm=True),
         ),
         MenuItem(
             key="9",
-            label="9 - 🔄 Сбросить UFW (к настройкам по умолчанию)",
+            label=t("menu.ufw.reset"),
             action=lambda: service.reset(confirm=True),
         ),
         MenuItem(
             key="10",
-            label="10 - 🗑️  Удалить UFW",
+            label=t("menu.ufw.uninstall"),
             action=lambda: service.uninstall(confirm=True),
         ),
     ]
@@ -125,9 +144,9 @@ def _build_menu_items(service: UfwService) -> list[MenuItem]:
 def display_ufw_submenu(service: UfwService) -> str:
     """Отображает подменю UFW и возвращает выбор пользователя."""
     return prompt_service_submenu(
-        header="Выберите действие:",
+        header=t("common.select_action"),
         items=_build_menu_items(service),
-        info_label="00 - ℹ️ Информация о UFW",
+        info_label=t("menu.standard.info_about_service", service="UFW"),
     )
 
 
@@ -135,10 +154,12 @@ def _collect_ports_from_group_selection(*, include_ssh: bool) -> list[str]:
     for key, value in PORT_GROUPS.items():
         if not include_ssh and key == "1":
             continue
-        print(f"{key} - {value['name']}: {value['desc']}")
-    print("0 - Отмена")
+        name_key = str(value["name_key"])
+        desc_key = str(value["desc_key"])
+        print(f"{key} - {t(name_key)}: {t(desc_key)}")
+    print(f"0 - {t('common.cancel')}")
 
-    choice = input("Введите номер группы (или несколько через пробел): ").strip().split()
+    choice = input(t("menu.ufw.group.enter_numbers")).strip().split()
     if "0" in choice:
         return []
 
@@ -156,61 +177,75 @@ def _collect_ports_from_group_selection(*, include_ssh: bool) -> list[str]:
 
 def _apply_ports(service: UfwService, ports: list[str], *, action: str) -> None:
     if not ports:
-        print("❌ Не выбраны порты")
+        print(t("menu.ufw.no_ports_selected"))
         return
 
-    verb = "Открытие" if action == "open" else "Закрытие"
     service_action = service.open_port if action == "open" else service.close_port
-    success_message = "открыт" if action == "open" else "закрыт"
-    failure_message = "открыть" if action == "open" else "закрыть"
 
-    print(f"\n🌐 {verb} портов: {', '.join(ports)}")
+    message_key = (
+        "menu.ufw.action.opening_ports" if action == "open" else "menu.ufw.action.closing_ports"
+    )
+    print(f"\n{t(message_key, ports=', '.join(ports))}")
     success_count = 0
     for port in ports:
         if service_action(port):
-            print(f"✅ Порт {port} {success_message}")
+            print(
+                t(
+                    "menu.ufw.port_opened" if action == "open" else "menu.ufw.port_closed",
+                    port=port,
+                )
+            )
             success_count += 1
         else:
-            print(f"❌ Не удалось {failure_message} порт {port}")
+            print(
+                t(
+                    "menu.ufw.port_open_failed"
+                    if action == "open"
+                    else "menu.ufw.port_close_failed",
+                    port=port,
+                )
+            )
 
     if success_count > 0:
-        print(f"✅ Успешно обработано {success_count} портов")
+        print(t("menu.ufw.ports_processed", count=success_count))
     else:
-        print("❌ Не удалось обработать ни один порт")
+        print(t("menu.ufw.no_ports_processed"))
 
 
 def _open_specific_ports(service):
     """Интерактивное открытие конкретных портов."""
-    print("Выберите порты для открытия:")
+    print(t("menu.ufw.group.select_open"))
     _apply_ports(service, _collect_ports_from_group_selection(include_ssh=True), action="open")
 
 
 def _close_specific_ports(service):
     """Интерактивное закрытие конкретных портов из готового списка."""
-    print("Выберите порты для закрытия:")
-    print("SSH (22) скрыт из этого списка для безопасного доступа к серверу.")
+    print(t("menu.ufw.group.select_close"))
+    print(t("menu.ufw.group.ssh_hidden"))
     _apply_ports(service, _collect_ports_from_group_selection(include_ssh=False), action="close")
 
 
 def _manage_custom_port(service: UfwService, *, action: str) -> None:
-    prompt = "Введите порт или правило (например 8080, 8080/tcp): "
-    port = input(prompt).strip()
+    port = input(t("menu.ufw.custom_port_prompt")).strip()
     if not port:
-        print("❌ Порт не указан")
+        print(t("menu.ufw.port_not_specified"))
         return
 
     if action == "close" and port.lower() in UfwService.SSH_PORT_ALIASES:
-        print("❌ Правило SSH нельзя удалить из соображений безопасности")
+        print(t("menu.ufw.ssh_rule_cannot_be_removed"))
         return
 
     service_action = service.open_port if action == "open" else service.close_port
     success = service_action(port)
     if success:
-        done = "открыт" if action == "open" else "закрыт"
-        print(f"✅ Порт {port} {done}")
+        print(t("menu.ufw.port_opened" if action == "open" else "menu.ufw.port_closed", port=port))
     else:
-        failed = "открыть" if action == "open" else "закрыть"
-        print(f"❌ Не удалось {failed} порт {port}")
+        print(
+            t(
+                "menu.ufw.port_open_failed" if action == "open" else "menu.ufw.port_close_failed",
+                port=port,
+            )
+        )
 
 
 def display_ufw_info():
@@ -223,13 +258,13 @@ def interactive_run():
     service = UfwService()
 
     run_menu_loop(
-        title="🔥 Управление UFW",
-        header="Выберите действие:",
+        title=t("menu.standard.manage_service", icon="🔥", service="UFW"),
+        header=t("common.select_action"),
         items_factory=lambda: _build_menu_items(service),
         info_handler=display_ufw_info,
         exit_handler=return_to_main_menu,
-        info_label="00 - ℹ️ Информация о UFW",
-        exit_label="0 - 🏠 Вернуться в главное меню",
-        intro_lines=["💡 По умолчанию: порт SSH (22) всегда разрешён для безопасности"],
-        invalid_message="❌ Неверная опция, пожалуйста, попробуйте снова",
+        info_label=t("menu.standard.info_about_service", service="UFW"),
+        exit_label=t("menu.service_exit_label"),
+        intro_lines=[t("menu.ufw.safe_baseline_hint")],
+        invalid_message=t("common.invalid_option"),
     )

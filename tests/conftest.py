@@ -7,6 +7,15 @@ import pytest
 # Добавляем путь к директории app, чтобы тесты могли импортировать модули
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from app.i18n.locale import set_locale
+
+
+@pytest.fixture(autouse=True)
+def reset_locale():
+    set_locale("ru")
+    yield
+    set_locale("ru")
+
 
 @pytest.fixture
 def mock_subprocess_result():

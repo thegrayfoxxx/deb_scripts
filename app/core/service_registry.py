@@ -7,6 +7,7 @@ from app.core.status import (
     activation_status_badge,
     installation_status_badge,
 )
+from app.i18n.locale import t
 from app.interfaces.menu.menu_utils import MenuItem
 from app.services.protocols import ActivatableServiceProtocol, ManagedServiceProtocol
 
@@ -20,7 +21,8 @@ class ServiceRegistryEntry:
     key: str
     name: str
     cli_label: str
-    main_menu_label: str
+    icon: str
+    main_menu_description_key: str
     service_import: str
     interactive_import: str
     main_menu_status_renderer: StatusRendererFactory
@@ -30,6 +32,16 @@ class ServiceRegistryEntry:
 
     def interactive_handler(self) -> None:
         _load_attr(self.interactive_import)()
+
+    @property
+    def main_menu_label(self) -> str:
+        return t(
+            "menu.registry.item",
+            code=self.code,
+            icon=self.icon,
+            service=self.name,
+            description=t(self.main_menu_description_key),
+        )
 
 
 def _load_attr(import_path: str) -> Any:
@@ -77,7 +89,8 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         key="ufw",
         name="UFW",
         cli_label="1=UFW",
-        main_menu_label="1 - 🔥 UFW - межсетевой экран",
+        icon="🔥",
+        main_menu_description_key="menu.registry.ufw_description",
         service_import="app.services.ufw.UfwService",
         interactive_import="app.interfaces.menu.ufw.interactive_run",
         main_menu_status_renderer=_ufw_status,
@@ -87,7 +100,8 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         key="bbr",
         name="BBR",
         cli_label="2=BBR",
-        main_menu_label="2 - 🌐 BBR - ускорение сети",
+        icon="🌐",
+        main_menu_description_key="menu.registry.bbr_description",
         service_import="app.services.bbr.BBRService",
         interactive_import="app.interfaces.menu.bbr.interactive_run",
         main_menu_status_renderer=_bbr_status,
@@ -97,7 +111,8 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         key="docker",
         name="Docker",
         cli_label="3=Docker",
-        main_menu_label="3 - 🐳 Docker - установка контейнеризации",
+        icon="🐳",
+        main_menu_description_key="menu.registry.docker_description",
         service_import="app.services.docker.DockerService",
         interactive_import="app.interfaces.menu.docker.interactive_run",
         main_menu_status_renderer=_docker_status,
@@ -107,7 +122,8 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         key="fail2ban",
         name="Fail2Ban",
         cli_label="4=Fail2Ban",
-        main_menu_label="4 - 🛡️ Fail2Ban - защита от атак",
+        icon="🛡️",
+        main_menu_description_key="menu.registry.fail2ban_description",
         service_import="app.services.fail2ban.Fail2BanService",
         interactive_import="app.interfaces.menu.fail2ban.interactive_run",
         main_menu_status_renderer=_fail2ban_status,
@@ -117,7 +133,8 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         key="traffic_guard",
         name="TrafficGuard",
         cli_label="5=TrafficGuard",
-        main_menu_label="5 - ⚔️ TrafficGuard - комплексная защита",
+        icon="⚔️",
+        main_menu_description_key="menu.registry.traffic_guard_description",
         service_import="app.services.traffic_guard.TrafficGuardService",
         interactive_import="app.interfaces.menu.traffic_guard.interactive_run",
         main_menu_status_renderer=_traffic_guard_status,
@@ -127,7 +144,8 @@ SERVICE_REGISTRY: tuple[ServiceRegistryEntry, ...] = (
         key="uv",
         name="UV",
         cli_label="6=UV",
-        main_menu_label="6 - 🐍 UV - менеджер пакетов Python",
+        icon="🐍",
+        main_menu_description_key="menu.registry.uv_description",
         service_import="app.services.uv.UVService",
         interactive_import="app.interfaces.menu.uv.interactive_run",
         main_menu_status_renderer=_uv_status,

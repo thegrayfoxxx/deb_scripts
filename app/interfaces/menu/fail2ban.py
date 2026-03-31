@@ -2,6 +2,7 @@ from app.core.status import (
     activation_status_badge,
     installation_status_badge,
 )
+from app.i18n.locale import t
 from app.interfaces.menu.menu_utils import (
     MenuItem,
     prompt_service_submenu,
@@ -19,29 +20,29 @@ def _build_menu_items(service: Fail2BanService):
     return [
         MenuItem(
             key="1",
-            label="1 - 📦 Установить Fail2Ban",
+            label=t("menu.fail2ban.install"),
             action=service.install,
             status_renderer=lambda status=install_status: status,
         ),
         MenuItem(
             key="2",
-            label="2 - ▶️ Активировать Fail2Ban (установит при необходимости)",
+            label=t("menu.fail2ban.activate"),
             action=service.activate,
             status_renderer=lambda status=activation_status: status,
         ),
         MenuItem(
             key="3",
-            label="3 - ⏹️ Отключить Fail2Ban",
+            label=t("menu.fail2ban.deactivate"),
             action=lambda: service.deactivate(confirm=True),
         ),
         MenuItem(
             key="4",
-            label="4 - 🗑️ Удалить Fail2Ban",
+            label=t("menu.fail2ban.uninstall"),
             action=lambda: service.uninstall(confirm=True),
         ),
         MenuItem(
             key="5",
-            label="5 - 📊 Показать статус Fail2Ban",
+            label=t("menu.fail2ban.status"),
             action=lambda: print(service.get_status()),
         ),
     ]
@@ -50,9 +51,9 @@ def _build_menu_items(service: Fail2BanService):
 def display_fail2ban_submenu(service: Fail2BanService):
     """Отображает подменю для Fail2Ban с выбором действий"""
     return prompt_service_submenu(
-        header="Доступные действия для Fail2Ban:",
+        header=t("menu.standard.service_header", service="Fail2Ban"),
         items=_build_menu_items(service),
-        info_label="00 - ℹ️ Информация о Fail2Ban",
+        info_label=t("menu.standard.info_about_service", service="Fail2Ban"),
     )
 
 
@@ -65,11 +66,11 @@ def interactive_run():
     service = Fail2BanService()
 
     run_menu_loop(
-        title="🛡️ Управление Fail2Ban",
-        header="Доступные действия для Fail2Ban:",
+        title=t("menu.standard.manage_service", icon="🛡️", service="Fail2Ban"),
+        header=t("menu.standard.service_header", service="Fail2Ban"),
         items_factory=lambda: _build_menu_items(service),
         info_handler=display_fail2ban_info,
         exit_handler=return_to_main_menu,
-        info_label="00 - ℹ️ Информация о Fail2Ban",
-        exit_label="0 - 🏠 Вернуться в главное меню",
+        info_label=t("menu.standard.info_about_service", service="Fail2Ban"),
+        exit_label=t("menu.service_exit_label"),
     )

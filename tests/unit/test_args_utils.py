@@ -9,6 +9,7 @@ class TestArgsUtils:
     def test_parse_args_uses_defaults(self):
         parsed = args.parse_args([])
 
+        assert parsed.lang == "ru"
         assert parsed.log_level == "info"
         assert parsed.install is None
         assert parsed.uninstall is None
@@ -21,6 +22,7 @@ class TestArgsUtils:
     def test_parse_args_accepts_log_level_and_install_codes(self):
         parsed = args.parse_args(["--log-level", "debug", "--install", "1", "6"])
 
+        assert parsed.lang == "ru"
         assert parsed.log_level == "debug"
         assert parsed.install == ["1", "6"]
         assert parsed.uninstall is None
@@ -94,3 +96,13 @@ class TestArgsUtils:
         assert "--status" in help_output
         assert "--info" in help_output
         assert "--all" in help_output
+        assert "--lang" in help_output
+
+    def test_parse_args_help_switches_to_english(self, capsys):
+        with pytest.raises(SystemExit) as exc:
+            args.parse_args(["--lang", "en", "--help"])
+
+        assert exc.value.code == 0
+        help_output = capsys.readouterr().out
+        assert "Console log level" in help_output
+        assert "Interface language" in help_output

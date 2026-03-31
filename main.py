@@ -2,6 +2,7 @@ from app.bootstrap.args import parse_args
 from app.bootstrap.logger import get_logger, set_default_console_level
 from app.bootstrap.permissions import check_root
 from app.bootstrap.update_os import update_os
+from app.i18n.locale import set_locale, t
 from app.interfaces.cli.non_interactive import run_non_interactive_commands
 from app.interfaces.menu.run import run_interactive_script
 
@@ -23,6 +24,7 @@ def _has_non_interactive_request(args) -> bool:
 
 def main(argv: list[str] | None = None):
     args = parse_args(argv)
+    set_locale(args.lang)
     set_default_console_level(args.log_level)
 
     check_root()
@@ -40,12 +42,10 @@ def run_cli() -> int:
     try:
         return main()
     except KeyboardInterrupt:
-        logger.info("👋 Выход...")
+        logger.info(t("common.exit_with_ellipsis"))
         return 130
     except PermissionError:
-        logger.error(
-            "🔐 Недостаточно прав для выполнения операции. Запустите скрипт с правами суперпользователя. (sudo)"
-        )
+        logger.error(t("common.permission_denied"))
         return 1
 
 

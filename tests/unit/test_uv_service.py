@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+from app.i18n.locale import t
 from app.services.uv import UVService
 
 
@@ -37,7 +38,18 @@ class TestUVService:
             assert self.service._is_uv_installed() is False
 
     def test_get_info_lines_returns_service_info(self):
-        assert self.service.get_info_lines() == UVService.INFO_LINES
+        assert self.service.get_info_lines() == (
+            t("info.uv.line1"),
+            t("info.uv.line2"),
+            t("info.uv.line3"),
+            t("info.uv.line4"),
+            t("info.uv.line5"),
+            t("info.uv.line6"),
+            t("info.uv.line7"),
+            t("info.uv.line8"),
+            t("info.uv.line9"),
+            t("info.uv.line10"),
+        )
 
     def test_get_uv_paths_success(self, mock_subprocess_result):
         """Тест успешного получения путей uv"""

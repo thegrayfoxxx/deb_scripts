@@ -3,6 +3,7 @@ import os
 from app.bootstrap.logger import get_logger
 from app.core.status import format_status_snapshot
 from app.core.subprocess import run
+from app.i18n.locale import is_affirmative_reply, t, tr
 
 logger = get_logger(__name__)
 
@@ -12,46 +13,60 @@ class UfwService:
 
     SSH_PORT_ALIASES = {"22", "22/tcp", "ssh"}
 
-    INFO_LINES = (
-        "UFW - это интерфейс для управления межсетевым экраном iptables",
-        "Предназначен для упрощения настройки правил межсетевого экрана",
-        "Основные возможности:",
-        "• Блокировка/разрешение сетевых соединений",
-        "• Настройка правил для конкретных портов и служб",
-        "• Защита от нежелательных входящих соединений",
-        "• Управление через простые команды",
-        "🔗 Официальная документация: https://help.ubuntu.com/community/UFW",
-    )
-
     def _ensure_default_policies(self) -> bool:
         """Применяет безопасные политики по умолчанию: deny incoming, allow outgoing."""
         try:
             logger.debug(
-                "🔐 Установка политик по умолчанию (входящие - запрещены, исходящие - разрешены)..."
+                tr(
+                    "🔐 Установка политик по умолчанию (входящие - запрещены, исходящие - разрешены)...",
+                    "🔐 Applying default policies (incoming denied, outgoing allowed)...",
+                )
             )
             incoming_result = run(["ufw", "default", "deny", "incoming"], check=False)
             outgoing_result = run(["ufw", "default", "allow", "outgoing"], check=False)
 
             if incoming_result.returncode != 0 or outgoing_result.returncode != 0:
-                logger.error("❌ Не удалось применить политики UFW по умолчанию")
+                logger.error(
+                    tr(
+                        "❌ Не удалось применить политики UFW по умолчанию",
+                        "❌ Failed to apply the default UFW policies",
+                    )
+                )
                 return False
 
-            logger.debug("✅ Политики по умолчанию установлены")
+            logger.debug(tr("✅ Политики по умолчанию установлены", "✅ Default policies applied"))
             return True
         except Exception:
-            logger.exception("💥 Критическая ошибка при установке политик UFW по умолчанию")
+            logger.exception(
+                tr(
+                    "💥 Критическая ошибка при установке политик UFW по умолчанию",
+                    "💥 Critical error while applying default UFW policies",
+                )
+            )
             return False
 
     def _is_installed(self) -> bool:
         """Проверяет, установлен ли UFW в системе."""
         try:
-            logger.debug("🔍 Проверка, установлен ли UFW...")
+            logger.debug(
+                tr("🔍 Проверка, установлен ли UFW...", "🔍 Checking whether UFW is installed...")
+            )
             result = run(["which", "ufw"], check=False)
             is_available = result.returncode == 0
-            logger.debug(f"{'✅' if is_available else '❌'} Доступность UFW: {is_available}")
+            logger.debug(
+                tr(
+                    f"{'✅' if is_available else '❌'} Доступность UFW: {is_available}",
+                    f"{'✅' if is_available else '❌'} UFW availability: {is_available}",
+                )
+            )
             return is_available
         except Exception as e:
-            logger.debug(f"❌ Ошибка при проверке установки UFW: {e}")
+            logger.debug(
+                tr(
+                    f"❌ Ошибка при проверке установки UFW: {e}",
+                    f"❌ Error while checking UFW installation: {e}",
+                )
+            )
             return False
 
     def is_installed(self) -> bool:
@@ -72,7 +87,16 @@ class UfwService:
 
     def get_info_lines(self) -> tuple[str, ...]:
         """Возвращает краткую информацию о сервисе для интерактивного UI."""
-        return self.INFO_LINES
+        return (
+            t("info.ufw.line1"),
+            t("info.ufw.line2"),
+            t("info.ufw.line3"),
+            t("info.ufw.line4"),
+            t("info.ufw.line5"),
+            t("info.ufw.line6"),
+            t("info.ufw.line7"),
+            t("info.ufw.line8"),
+        )
 
     def ensure_safe_baseline(self) -> bool:
         """Гарантирует безопасную базовую конфигурацию UFW для серверных сценариев."""
@@ -80,7 +104,12 @@ class UfwService:
             return False
 
         if not self._ensure_ssh_allowed():
-            logger.error("❌ Не удалось гарантировать правило SSH")
+            logger.error(
+                tr(
+                    "❌ Не удалось гарантировать правило SSH",
+                    "❌ Failed to guarantee the SSH rule",
+                )
+            )
             return False
 
         return True
@@ -88,11 +117,11 @@ class UfwService:
     def install(self) -> bool:
         """Устанавливает межсетевой экран UFW с включенным базовым правилом SSH."""
         try:
-            logger.info("🔥 Начало установки UFW...")
+            logger.info(tr("🔥 Начало установки UFW...", "🔥 Starting UFW installation..."))
 
             # Check if already installed
             if self.is_installed():
-                logger.info("✅ UFW уже установлен 🎉")
+                logger.info(tr("✅ UFW уже установлен 🎉", "✅ UFW is already installed 🎉"))
 
                 # Для уже установленного UFW считаем install() идемпотентной операцией.
                 # Дополнительно нормализуем безопасную базовую конфигурацию.
@@ -100,62 +129,101 @@ class UfwService:
 
             # Check for root privileges
             if os.geteuid() != 0:
-                logger.error("🔐 Для установки UFW требуются права суперпользователя")
+                logger.error(
+                    tr(
+                        "🔐 Для установки UFW требуются права суперпользователя",
+                        "🔐 Superuser privileges are required to install UFW",
+                    )
+                )
                 return False
 
-            logger.debug("📦 Установка пакета UFW...")
+            logger.debug(tr("📦 Установка пакета UFW...", "📦 Installing UFW package..."))
             install_result = run(["apt", "install", "-y", "ufw"], check=False)
             if install_result.returncode == 0:
-                logger.debug("✅ Пакет UFW успешно установлен")
+                logger.debug(
+                    tr("✅ Пакет UFW успешно установлен", "✅ UFW package installed successfully")
+                )
             else:
-                logger.warning("⚠️ Установка пакета UFW завершилась с предупреждением")
-                logger.debug(f"apt install ufw return code: {install_result.returncode}")
+                logger.warning(
+                    tr(
+                        "⚠️ Установка пакета UFW завершилась с предупреждением",
+                        "⚠️ UFW package installation finished with a warning",
+                    )
+                )
+                logger.debug(
+                    tr(
+                        f"Код возврата apt install ufw: {install_result.returncode}",
+                        f"apt install ufw return code: {install_result.returncode}",
+                    )
+                )
 
             if install_result.returncode != 0:
-                logger.error("❌ Failed to install UFW")
+                logger.error(tr("❌ Не удалось установить UFW", "❌ Failed to install UFW"))
                 return False
 
             if not self.ensure_safe_baseline():
                 return False
 
-            logger.info("✅ UFW успешно установлен! 🎉")
+            logger.info(tr("✅ UFW успешно установлен! 🎉", "✅ UFW installed successfully! 🎉"))
             return True
 
         except PermissionError as e:
-            logger.error(f"🔐 Ошибка прав доступа при установке: {e}")
+            logger.error(
+                tr(
+                    f"🔐 Ошибка прав доступа при установке: {e}",
+                    f"🔐 Permission error during installation: {e}",
+                )
+            )
             return False
         except Exception:
-            logger.exception("💥 Критическая ошибка при установке UFW")
+            logger.exception(
+                tr(
+                    "💥 Критическая ошибка при установке UFW",
+                    "💥 Critical error during UFW installation",
+                )
+            )
             return False
 
     def _ensure_ssh_allowed(self) -> bool:
         """Обеспечивает разрешение порта SSH (22) перед включением UFW."""
         try:
-            logger.debug("🔍 Проверка правила SSH...")
+            logger.debug(tr("🔍 Проверка правила SSH...", "🔍 Checking SSH rule..."))
 
             # Check if SSH is already allowed
             show_result = run(["ufw", "show", "added"], check=False)
 
             if "22" in show_result.stdout or "ssh" in show_result.stdout.lower():
-                logger.debug("✅ Правило SSH уже существует")
+                logger.debug(tr("✅ Правило SSH уже существует", "✅ SSH rule already exists"))
                 return True
 
             # Add SSH rule
-            logger.debug("🔒 Добавление правила SSH (порт 22) для обеспечения безопасности...")
+            logger.debug(
+                tr(
+                    "🔒 Добавление правила SSH (порт 22) для обеспечения безопасности...",
+                    "🔒 Adding SSH rule (port 22) to preserve safe access...",
+                )
+            )
             allow_ssh_result = run(["ufw", "allow", "ssh"], check=False)
 
             if allow_ssh_result.returncode != 0:
                 # Try alternative port specification
                 allow_ssh_result = run(["ufw", "allow", "22"], check=False)
                 if allow_ssh_result.returncode != 0:
-                    logger.warning("⚠️ Не удалось добавить правило SSH")
+                    logger.warning(
+                        tr("⚠️ Не удалось добавить правило SSH", "⚠️ Failed to add the SSH rule")
+                    )
                     return False
 
-            logger.debug("✅ Правило SSH успешно добавлено")
+            logger.debug(tr("✅ Правило SSH успешно добавлено", "✅ SSH rule added successfully"))
             return True
 
         except Exception as e:
-            logger.debug(f"❌ Ошибка при обеспечении правила SSH: {e}")
+            logger.debug(
+                tr(
+                    f"❌ Ошибка при обеспечении правила SSH: {e}",
+                    f"❌ Error while ensuring SSH rule: {e}",
+                )
+            )
             return False
 
     def enable_with_ssh_only(self) -> bool:
@@ -167,51 +235,96 @@ class UfwService:
 
             # Check if UFW is installed
             if not self._is_installed():
-                logger.info("📦 UFW не установлен, устанавливаю...")
+                logger.info(
+                    tr(
+                        "📦 UFW не установлен, устанавливаю...",
+                        "📦 UFW is not installed, installing it...",
+                    )
+                )
                 if not self.install():
-                    logger.error("❌ Не удалось установить UFW")
+                    logger.error(tr("❌ Не удалось установить UFW", "❌ Failed to install UFW"))
                     return False
 
             # Check if UFW is active
             if self._is_active():
-                logger.info("✅ UFW уже включён, проверяю базовую конфигурацию...")
+                logger.info(
+                    tr(
+                        "✅ UFW уже включён, проверяю базовую конфигурацию...",
+                        "✅ UFW is already enabled, checking the safe baseline...",
+                    )
+                )
                 return self.ensure_safe_baseline()
             # If not active, continue with enabling
 
             # Нормализуем базовые политики перед включением, чтобы не унаследовать
             # старую конфигурацию с блокировкой исходящего трафика.
             if not self.ensure_safe_baseline():
-                logger.error("❌ Невозможно включить UFW без безопасных политик по умолчанию")
+                logger.error(
+                    tr(
+                        "❌ Невозможно включить UFW без безопасных политик по умолчанию",
+                        "❌ Cannot enable UFW without safe default policies",
+                    )
+                )
                 return False
 
             # Enable UFW (non-interactive)
-            logger.debug("🔥 Включение межсетевого экрана UFW в неинтерактивном режиме...")
+            logger.debug(
+                tr(
+                    "🔥 Включение межсетевого экрана UFW в неинтерактивном режиме...",
+                    "🔥 Enabling UFW firewall in non-interactive mode...",
+                )
+            )
             enable_result = run(["ufw", "--force", "enable"], check=False)
 
             if enable_result.returncode != 0:
                 # В некоторых окружениях ufw может вернуть ненулевой код,
                 # хотя фактически уже перешёл в состояние active.
-                logger.warning("⚠️ ufw enable завершился с предупреждением, перепроверяю статус...")
-                logger.debug(f"ufw enable return code: {enable_result.returncode}")
+                logger.warning(
+                    tr(
+                        "⚠️ ufw enable завершился с предупреждением, перепроверяю статус...",
+                        "⚠️ ufw enable finished with a warning, rechecking status...",
+                    )
+                )
+                logger.debug(
+                    tr(
+                        f"Код возврата ufw enable: {enable_result.returncode}",
+                        f"ufw enable return code: {enable_result.returncode}",
+                    )
+                )
                 if not self._is_active():
-                    logger.error("❌ Не удалось включить UFW")
+                    logger.error(tr("❌ Не удалось включить UFW", "❌ Failed to enable UFW"))
                     return False
 
             if not self._is_active():
-                logger.error("❌ UFW не перешёл в активное состояние после включения")
+                logger.error(
+                    tr(
+                        "❌ UFW не перешёл в активное состояние после включения",
+                        "❌ UFW did not become active after enabling",
+                    )
+                )
                 return False
 
-            logger.info("✅ UFW включён с сохранением доступа по SSH")
+            logger.info(
+                tr(
+                    "✅ UFW включён с сохранением доступа по SSH",
+                    "✅ UFW enabled while preserving SSH access",
+                )
+            )
             return True
 
         except Exception:
-            logger.exception("💥 Критическая ошибка при включении UFW")
+            logger.exception(
+                tr(
+                    "💥 Критическая ошибка при включении UFW",
+                    "💥 Critical error while enabling UFW",
+                )
+            )
             return False
 
     def open_common_ports(self) -> bool:
         """Открывает общие порты: HTTP (80), HTTPS (443), Почта (25, 587, 993, 995)."""
         try:
-            logger.info("🔓 Открытие общих портов...")
+            logger.info(tr("🔓 Открытие общих портов...", "🔓 Opening common ports..."))
 
             common_ports = [
                 ("80", "HTTP"),
@@ -224,24 +337,54 @@ class UfwService:
 
             success_count = 0
             for port, description in common_ports:
-                logger.debug(f"🌐 Открытие порта {description} ({port}) в межсетевом экране...")
+                logger.debug(
+                    tr(
+                        f"🌐 Открытие порта {description} ({port}) в межсетевом экране...",
+                        f"🌐 Opening port {description} ({port}) in the firewall...",
+                    )
+                )
                 result = run(["ufw", "allow", port], check=False)
 
                 if result.returncode == 0:
-                    logger.debug(f"✅ {description} ({port}) открыт")
+                    logger.debug(
+                        tr(
+                            f"✅ {description} ({port}) открыт",
+                            f"✅ {description} ({port}) opened",
+                        )
+                    )
                     success_count += 1
                 else:
-                    logger.warning(f"⚠️ Не удалось открыть {description} ({port})")
+                    logger.warning(
+                        tr(
+                            f"⚠️ Не удалось открыть {description} ({port})",
+                            f"⚠️ Failed to open {description} ({port})",
+                        )
+                    )
 
             if success_count > 0:
-                logger.info(f"✅ Открыто {success_count}/{len(common_ports)} общих портов")
+                logger.info(
+                    tr(
+                        f"✅ Открыто {success_count}/{len(common_ports)} общих портов",
+                        f"✅ Opened {success_count}/{len(common_ports)} common ports",
+                    )
+                )
                 return True
             else:
-                logger.warning("⚠️ Ни один из общих портов не был успешно открыт")
+                logger.warning(
+                    tr(
+                        "⚠️ Ни один из общих портов не был успешно открыт",
+                        "⚠️ None of the common ports were opened successfully",
+                    )
+                )
                 return False
 
         except Exception:
-            logger.exception("💥 Критическая ошибка при открытии общих портов")
+            logger.exception(
+                tr(
+                    "💥 Критическая ошибка при открытии общих портов",
+                    "💥 Critical error while opening common ports",
+                )
+            )
             return False
 
     def _is_active(self) -> bool:
@@ -250,179 +393,302 @@ class UfwService:
             result = run(["ufw", "status"], check=False)
             raw_status = result.stdout.strip() if result.returncode == 0 else ""
             is_active = "status: active" in raw_status.lower()
-            logger.debug(f"🔍 Статус UFW: {'✅ активен' if is_active else '❌ не активен'}")
+            logger.debug(
+                tr(
+                    f"🔍 Статус UFW: {'✅ активен' if is_active else '❌ не активен'}",
+                    f"🔍 UFW status: {'✅ active' if is_active else '❌ inactive'}",
+                )
+            )
             return is_active
         except Exception as e:
-            logger.debug(f"❌ Ошибка при проверке активности UFW: {e}")
+            logger.debug(
+                tr(
+                    f"❌ Ошибка при проверке активности UFW: {e}",
+                    f"❌ Error while checking UFW activity: {e}",
+                )
+            )
             return False
 
     def get_status(self) -> str:
         """Получает текущий статус UFW."""
         try:
-            logger.debug("🔍 Получение текущего статуса межсетевого экрана UFW...")
+            logger.debug(
+                tr(
+                    "🔍 Получение текущего статуса межсетевого экрана UFW...",
+                    "🔍 Getting current UFW firewall status...",
+                )
+            )
             installed = self.is_installed()
             result = run(["ufw", "status"], check=False)
 
             if result.returncode == 0:
-                raw_status = result.stdout.strip() or "недоступен"
-                logger.debug(f"📊 Статус UFW: {raw_status}")
+                raw_status = result.stdout.strip() or t("status.unavailable")
+                logger.debug(tr(f"📊 Статус UFW: {raw_status}", f"📊 UFW status: {raw_status}"))
             else:
-                logger.debug("❌ Не удалось получить статус UFW")
-                raw_status = "недоступен"
+                logger.debug(
+                    tr("❌ Не удалось получить статус UFW", "❌ Failed to get UFW status")
+                )
+                raw_status = t("status.unavailable")
 
             is_active = installed and "status: active" in raw_status.lower()
 
             return format_status_snapshot(
                 installed=installed,
                 active=is_active,
-                details=[f"Вывод ufw status: {raw_status}"],
+                details=[t("status.ufw_output", value=raw_status)],
             )
 
         except Exception as e:
-            logger.debug(f"❌ Ошибка при получении статуса UFW: {e}")
+            logger.debug(
+                tr(
+                    f"❌ Ошибка при получении статуса UFW: {e}",
+                    f"❌ Error while getting UFW status: {e}",
+                )
+            )
             return format_status_snapshot(
                 installed=self.is_installed(),
                 active=self.is_active() if self.is_installed() else False,
-                details=["Вывод ufw status: ошибка получения статуса"],
+                details=[t("status.ufw_output", value=t("status.error_output"))],
             )
 
     def open_port(self, port: str) -> bool:
         """Открывает конкретный порт в UFW."""
         try:
-            logger.debug(f"🌐 Открытие порта {port}...")
+            logger.debug(tr(f"🌐 Открытие порта {port}...", f"🌐 Opening port {port}..."))
             result = run(["ufw", "allow", port], check=False)
 
             if result.returncode == 0:
-                logger.debug(f"✅ Порт {port} успешно открыт")
+                logger.debug(
+                    tr(f"✅ Порт {port} успешно открыт", f"✅ Port {port} opened successfully")
+                )
                 return True
             else:
-                logger.warning(f"⚠️ Не удалось открыть порт {port}")
+                logger.warning(
+                    tr(f"⚠️ Не удалось открыть порт {port}", f"⚠️ Failed to open port {port}")
+                )
                 return False
         except Exception:
-            logger.exception(f"💥 Критическая ошибка при открытии порта {port}")
+            logger.exception(
+                tr(
+                    f"💥 Критическая ошибка при открытии порта {port}",
+                    f"💥 Critical error while opening port {port}",
+                )
+            )
             return False
 
     def close_port(self, port: str) -> bool:
         """Удаляет правило для конкретного порта, кроме SSH."""
         normalized_port = port.strip().lower()
         if normalized_port in self.SSH_PORT_ALIASES:
-            logger.warning("⚠️ Удаление правила SSH запрещено для сохранения безопасного доступа")
+            logger.warning(
+                tr(
+                    "⚠️ Удаление правила SSH запрещено для сохранения безопасного доступа",
+                    "⚠️ Removing the SSH rule is forbidden to preserve safe access",
+                )
+            )
             return False
 
         try:
-            logger.debug(f"🔒 Удаление правила для порта {port}...")
+            logger.debug(
+                tr(
+                    f"🔒 Удаление правила для порта {port}...",
+                    f"🔒 Removing rule for port {port}...",
+                )
+            )
             result = run(["ufw", "delete", "allow", port], check=False)
 
             if result.returncode == 0:
-                logger.debug(f"✅ Правило для порта {port} успешно удалено")
+                logger.debug(
+                    tr(
+                        f"✅ Правило для порта {port} успешно удалено",
+                        f"✅ Rule for port {port} removed successfully",
+                    )
+                )
                 return True
 
-            logger.warning(f"⚠️ Не удалось удалить правило для порта {port}")
+            logger.warning(
+                tr(
+                    f"⚠️ Не удалось удалить правило для порта {port}",
+                    f"⚠️ Failed to remove the rule for port {port}",
+                )
+            )
             return False
         except Exception:
-            logger.exception(f"💥 Критическая ошибка при удалении правила для порта {port}")
+            logger.exception(
+                tr(
+                    f"💥 Критическая ошибка при удалении правила для порта {port}",
+                    f"💥 Critical error while removing the rule for port {port}",
+                )
+            )
             return False
 
     def disable(self, confirm: bool = False) -> bool:
         """Отключает межсетевой экран UFW."""
         if confirm:
             confirmation = input(
-                "⚠️ Вы уверены, что хотите отключить межсетевой экран UFW? (y/N): "
+                tr(
+                    "⚠️ Вы уверены, что хотите отключить межсетевой экран UFW? ",
+                    "⚠️ Are you sure you want to disable the UFW firewall? ",
+                )
+                + t("common.confirm_yes_no")
             )
-            if confirmation.lower() not in ["y", "yes"]:
-                logger.info("❌ Отключение UFW отменено пользователем")
+            if not is_affirmative_reply(confirmation):
+                logger.info(
+                    tr(
+                        "❌ Отключение UFW отменено пользователем",
+                        "❌ UFW disable was cancelled by the user",
+                    )
+                )
                 return False
 
         try:
-            logger.warning("⚠️ Отключение межсетевого экрана UFW...")
+            logger.warning(
+                tr("⚠️ Отключение межсетевого экрана UFW...", "⚠️ Disabling the UFW firewall...")
+            )
 
             if not self._is_installed():
-                logger.info("✅ UFW не установлен, нечего отключать")
+                logger.info(
+                    tr(
+                        "✅ UFW не установлен, нечего отключать",
+                        "✅ UFW is not installed, nothing to disable",
+                    )
+                )
                 return True
 
             if not self._is_active():
-                logger.info("✅ UFW уже отключён")
+                logger.info(tr("✅ UFW уже отключён", "✅ UFW is already disabled"))
                 return True
 
             # Disable UFW (non-interactive)
             disable_result = run(["ufw", "disable"], check=False)
 
             if disable_result.returncode == 0:
-                logger.info("✅ UFW успешно отключён")
+                logger.info(tr("✅ UFW успешно отключён", "✅ UFW disabled successfully"))
                 return True
             else:
-                logger.error("❌ Не удалось отключить UFW")
+                logger.error(tr("❌ Не удалось отключить UFW", "❌ Failed to disable UFW"))
                 return False
 
         except Exception:
-            logger.exception("💥 Критическая ошибка при отключении UFW")
+            logger.exception(
+                tr(
+                    "💥 Критическая ошибка при отключении UFW",
+                    "💥 Critical error while disabling UFW",
+                )
+            )
             return False
 
     def reset(self, confirm: bool = False) -> bool:
         """Сбрасывает UFW к состоянию по умолчанию (отключает и сбрасывает правила)."""
         if confirm:
             confirmation = input(
-                "⚠️ Вы уверены, что хотите сбросить UFW к настройкам по умолчанию? (y/N): "
+                tr(
+                    "⚠️ Вы уверены, что хотите сбросить UFW к настройкам по умолчанию? ",
+                    "⚠️ Are you sure you want to reset UFW to default settings? ",
+                )
+                + t("common.confirm_yes_no")
             )
-            if confirmation.lower() not in ["y", "yes"]:
-                logger.info("❌ Сброс UFW отменён пользователем")
+            if not is_affirmative_reply(confirmation):
+                logger.info(
+                    tr(
+                        "❌ Сброс UFW отменён пользователем",
+                        "❌ UFW reset was cancelled by the user",
+                    )
+                )
                 return False
 
         try:
-            logger.warning("⚠️ Сброс UFW к настройкам по умолчанию...")
+            logger.warning(
+                tr(
+                    "⚠️ Сброс UFW к настройкам по умолчанию...",
+                    "⚠️ Resetting UFW to default settings...",
+                )
+            )
 
             if not self._is_installed():
-                logger.info("✅ UFW не установлен, нечего сбрасывать")
+                logger.info(
+                    tr(
+                        "✅ UFW не установлен, нечего сбрасывать",
+                        "✅ UFW is not installed, nothing to reset",
+                    )
+                )
                 return True
 
             # Disable UFW first if it's active
             if self._is_active():
-                logger.info("🔒 Отключение UFW перед сбросом...")
+                logger.info(
+                    tr("🔒 Отключение UFW перед сбросом...", "🔒 Disabling UFW before reset...")
+                )
                 self.disable(confirm=False)  # Не запрашивать подтверждение дважды
 
             # Reset all rules (non-interactive)
             reset_result = run(["ufw", "--force", "reset"], check=False)
 
             if reset_result.returncode == 0:
-                logger.info("✅ UFW успешно сброшен")
+                logger.info(tr("✅ UFW успешно сброшен", "✅ UFW reset successfully"))
                 return True
             else:
-                logger.error("❌ Не удалось сбросить UFW")
+                logger.error(tr("❌ Не удалось сбросить UFW", "❌ Failed to reset UFW"))
                 return False
 
         except Exception:
-            logger.exception("💥 Критическая ошибка при сбросе UFW")
+            logger.exception(
+                tr("💥 Критическая ошибка при сбросе UFW", "💥 Critical error while resetting UFW")
+            )
             return False
 
     def uninstall(self, confirm: bool = False) -> bool:
         """Удаляет межсетевой экран UFW."""
         if confirm:
-            confirmation = input("⚠️ Вы уверены, что хотите удалить UFW? (y/N): ")
-            if confirmation.lower() not in ["y", "yes"]:
-                logger.info("❌ Удаление UFW отменено пользователем")
+            confirmation = input(
+                tr(
+                    "⚠️ Вы уверены, что хотите удалить UFW? ",
+                    "⚠️ Are you sure you want to remove UFW? ",
+                )
+                + t("common.confirm_yes_no")
+            )
+            if not is_affirmative_reply(confirmation):
+                logger.info(
+                    tr(
+                        "❌ Удаление UFW отменено пользователем",
+                        "❌ UFW removal was cancelled by the user",
+                    )
+                )
                 return False
 
         try:
-            logger.warning("🗑️ Начало удаления UFW...")
+            logger.warning(tr("🗑️ Начало удаления UFW...", "🗑️ Starting UFW removal..."))
 
             if not self._is_installed():
-                logger.info("✅ UFW не установлен, нечего удалять")
+                logger.info(
+                    tr(
+                        "✅ UFW не установлен, нечего удалять",
+                        "✅ UFW is not installed, nothing to remove",
+                    )
+                )
                 return True
 
             # First reset UFW
             self.reset(confirm=False)  # Не запрашивать подтверждение дважды
 
             # Remove UFW package
-            logger.info("📦 Удаление пакета UFW...")
+            logger.info(tr("📦 Удаление пакета UFW...", "📦 Removing the UFW package..."))
             remove_result = run(["apt", "remove", "--purge", "-y", "ufw"], check=False)
 
             if remove_result.returncode == 0:
-                logger.info("✅ UFW успешно удалён")
+                logger.info(tr("✅ UFW успешно удалён", "✅ UFW removed successfully"))
                 return True
             else:
-                logger.error("❌ Не удалось удалить пакет UFW")
+                logger.error(
+                    tr("❌ Не удалось удалить пакет UFW", "❌ Failed to remove the UFW package")
+                )
                 return False
 
         except Exception:
-            logger.exception("💥 Критическая ошибка при удалении UFW")
+            logger.exception(
+                tr(
+                    "💥 Критическая ошибка при удалении UFW",
+                    "💥 Critical error while removing UFW",
+                )
+            )
             return False

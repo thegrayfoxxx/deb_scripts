@@ -1,71 +1,124 @@
 import argparse
+import sys
 
 from app.core.service_registry import format_service_codes_help
+from app.i18n.locale import DEFAULT_LOCALE, SUPPORTED_LOCALES, translate
 
 NON_INTERACTIVE_OPTIONS = ("install", "uninstall", "activate", "deactivate", "status", "info")
 
 
-def parse_args(argv: list[str] | None = None):
+def _detect_requested_language(argv: list[str] | None = None) -> str:
+    arguments = list(sys.argv[1:] if argv is None else argv)
+
+    for index, value in enumerate(arguments):
+        if value == "--lang" and index + 1 < len(arguments):
+            return arguments[index + 1].lower()
+        if value.startswith("--lang="):
+            return value.split("=", 1)[1].lower()
+
+    return DEFAULT_LOCALE
+
+
+def _build_parser(language: str) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Утилита для автоматизации DevOps задач в Linux",
+        description=translate("main.description", locale=language),
         formatter_class=argparse.RawTextHelpFormatter,
     )
 
     parser.add_argument(
+        "--lang",
+        choices=list(SUPPORTED_LOCALES),
+        default=DEFAULT_LOCALE,
+        help=translate("main.lang_help", locale=language),
+    )
+    parser.add_argument(
         "--log-level",
         choices=["debug", "info", "warning", "error"],
         default="info",
-        help="Уровень логирования для консоли: debug, info, warning, error (по умолчанию: info)",
+        help=translate("main.log_level_help", locale=language),
     )
     parser.add_argument(
         "--install",
         nargs="*",
         type=str,
-        help=f"Режим неинтерактивной установки: {format_service_codes_help()} или --all",
+        help=translate(
+            "args.install_help",
+            locale=language,
+            codes=format_service_codes_help(),
+        ),
     )
     parser.add_argument(
         "--uninstall",
         nargs="*",
         type=str,
-        help=f"Режим неинтерактивного удаления: {format_service_codes_help()} или --all",
+        help=translate(
+            "args.uninstall_help",
+            locale=language,
+            codes=format_service_codes_help(),
+        ),
     )
     parser.add_argument(
         "--activate",
         nargs="*",
         type=str,
-        help=f"Режим неинтерактивной активации: {format_service_codes_help()} или --all",
+        help=translate(
+            "args.activate_help",
+            locale=language,
+            codes=format_service_codes_help(),
+        ),
     )
     parser.add_argument(
         "--deactivate",
         nargs="*",
         type=str,
-        help=f"Режим неинтерактивного отключения: {format_service_codes_help()} или --all",
+        help=translate(
+            "args.deactivate_help",
+            locale=language,
+            codes=format_service_codes_help(),
+        ),
     )
     parser.add_argument(
         "--status",
         nargs="*",
         type=str,
-        help=f"Показать статус сервисов: {format_service_codes_help()} или --all",
+        help=translate(
+            "args.status_help",
+            locale=language,
+            codes=format_service_codes_help(),
+        ),
     )
     parser.add_argument(
         "--info",
         nargs="*",
         type=str,
-        help=f"Показать информацию о сервисах: {format_service_codes_help()} или --all",
+        help=translate(
+            "args.info_help",
+            locale=language,
+            codes=format_service_codes_help(),
+        ),
     )
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Применить указанную non-interactive операцию ко всем сервисам",
+        help=translate("args.all_help", locale=language),
     )
+    return parser
+
+
+def parse_args(argv: list[str] | None = None):
+    parser = _build_parser(_detect_requested_language(argv))
 
     parsed = parser.parse_args(argv)
 
     for option_name in NON_INTERACTIVE_OPTIONS:
         values = getattr(parsed, option_name)
         if values == [] and not parsed.all:
-            parser.error(f"--{option_name} требует коды сервисов или флаг --all")
+            parser.error(
+                translate("args.error_codes_or_all", locale=parsed.lang, option_name=option_name)
+            )
         if parsed.all and values not in (None, []):
-            parser.error(f"--{option_name} нельзя использовать одновременно с кодами и --all")
+            parser.error(
+                translate("args.error_codes_with_all", locale=parsed.lang, option_name=option_name)
+            )
 
     return parsed

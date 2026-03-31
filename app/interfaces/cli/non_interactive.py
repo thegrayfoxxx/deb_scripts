@@ -7,6 +7,7 @@ from app.core.service_registry import (
     get_all_service_codes,
     get_service_entry,
 )
+from app.i18n.locale import t
 from app.services.protocols import ActivatableServiceProtocol, ManagedServiceProtocol
 
 logger = get_logger(__name__)
@@ -31,7 +32,7 @@ def _resolve_service(
 ) -> tuple[ServiceRegistryEntry, ManagedServiceProtocol] | None:
     entry = get_service_entry(code)
     if entry is None:
-        logger.error(f"❌ Неизвестный код сервиса для операции '{action_name}': {code}")
+        logger.error(t("cli.unknown_service_code", action_name=action_name, code=code))
         return None
     return entry, entry.service_factory()
 
@@ -40,7 +41,7 @@ def _report_result(entry: ServiceRegistryEntry, action_name: str, result: bool |
     if result is None:
         return
     badge = "✅" if result else "❌"
-    print(f"{badge} [{entry.name}] {action_name}")
+    print(t("cli.result_line", badge=badge, service_name=entry.name, action_name=action_name))
 
 
 def _run_service_operation(
@@ -72,7 +73,7 @@ def _run_service_operation(
 
 def _activate_service(entry: ServiceRegistryEntry, service: ManagedServiceProtocol) -> bool:
     if not all(hasattr(service, attr) for attr in ("activate", "deactivate", "is_active")):
-        logger.error(f"❌ Сервис {entry.name} не поддерживает активацию")
+        logger.error(t("cli.service_not_activatable", service_name=entry.name))
         return False
     activatable_service = cast(ActivatableServiceProtocol, service)
     return activatable_service.activate()
@@ -80,7 +81,7 @@ def _activate_service(entry: ServiceRegistryEntry, service: ManagedServiceProtoc
 
 def _deactivate_service(entry: ServiceRegistryEntry, service: ManagedServiceProtocol) -> bool:
     if not all(hasattr(service, attr) for attr in ("activate", "deactivate", "is_active")):
-        logger.error(f"❌ Сервис {entry.name} не поддерживает отключение")
+        logger.error(t("cli.service_not_deactivatable", service_name=entry.name))
         return False
     activatable_service = cast(ActivatableServiceProtocol, service)
     return activatable_service.deactivate(confirm=False)
@@ -104,37 +105,37 @@ def run_non_interactive_commands(app_args):
     all_ok &= _run_service_operation(
         app_args.install,
         use_all=app_args.all,
-        action_name="install",
+        action_name=t("cli.action.install"),
         operation=lambda _entry, service: service.install(),
     )
     all_ok &= _run_service_operation(
         app_args.activate,
         use_all=app_args.all,
-        action_name="activate",
+        action_name=t("cli.action.activate"),
         operation=_activate_service,
     )
     all_ok &= _run_service_operation(
         app_args.status,
         use_all=app_args.all,
-        action_name="status",
+        action_name=t("cli.action.status"),
         operation=lambda entry, service: _print_service_status(entry, service),
     )
     all_ok &= _run_service_operation(
         app_args.info,
         use_all=app_args.all,
-        action_name="info",
+        action_name=t("cli.action.info"),
         operation=lambda entry, service: _print_service_info(entry, service),
     )
     all_ok &= _run_service_operation(
         app_args.deactivate,
         use_all=app_args.all,
-        action_name="deactivate",
+        action_name=t("cli.action.deactivate"),
         operation=_deactivate_service,
     )
     all_ok &= _run_service_operation(
         app_args.uninstall,
         use_all=app_args.all,
-        action_name="uninstall",
+        action_name=t("cli.action.uninstall"),
         operation=lambda _entry, service: service.uninstall(confirm=False),
     )
 

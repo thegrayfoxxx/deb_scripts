@@ -2,9 +2,8 @@ from dataclasses import dataclass
 from typing import Callable, Iterable, Sequence, TypeAlias
 
 from app.core.status import status_badge
+from app.i18n.locale import t
 
-SERVICE_EXIT_LABEL = "0 - 🏠 Вернуться в главное меню"
-SERVICE_EXIT_MESSAGE = "🏠 Возврат в главное меню..."
 MenuAction: TypeAlias = Callable[[], object]
 
 
@@ -26,24 +25,26 @@ def format_menu_line(item: MenuItem) -> str:
 def prompt_menu(
     header: str,
     items: Sequence[MenuItem],
-    info_label: str = "00 - ℹ️ Информация",
-    exit_label: str = "0 - 🏠 Вернуться назад",
+    info_label: str | None = None,
+    exit_label: str | None = None,
 ) -> str:
     """Печатает меню и возвращает выбор пользователя."""
     print(f"\n{header}")
+    resolved_info_label = info_label or t("menu.info_label")
+    resolved_exit_label = exit_label or t("menu.back_label")
     prompt_lines = [format_menu_line(item) for item in items]
-    prompt_lines.extend([info_label, exit_label, "Введите номер: "])
+    prompt_lines.extend([resolved_info_label, resolved_exit_label, t("common.enter_number")])
     return str(input("\n".join(prompt_lines)))
 
 
-def return_to_previous_menu(message: str = "🏠 Возврат в предыдущее меню...") -> None:
+def return_to_previous_menu(message: str | None = None) -> None:
     """Печатает сообщение о возврате и завершает текущий цикл меню."""
-    print(message)
+    print(message or t("menu.back_message"))
 
 
 def return_to_main_menu() -> None:
     """Печатает стандартное сообщение о возврате в главное меню."""
-    return_to_previous_menu(SERVICE_EXIT_MESSAGE)
+    return_to_previous_menu(t("menu.service_exit_message"))
 
 
 def prompt_service_submenu(
@@ -57,7 +58,7 @@ def prompt_service_submenu(
         header=header,
         items=items,
         info_label=info_label,
-        exit_label=SERVICE_EXIT_LABEL,
+        exit_label=t("menu.service_exit_label"),
     )
 
 
@@ -99,7 +100,7 @@ def show_info_screen(title: str, lines: Sequence[str]) -> None:
     print(f"\n{title}")
     for line in lines:
         print(line)
-    print("\nДля возврата в меню нажмите любую клавишу")
+    print(f"\n{t('common.press_any_key')}")
     input()
 
 
@@ -112,13 +113,13 @@ def run_menu_loop(
     info_handler: Callable[[], None],
     exit_handler: Callable[[], None],
     intro_lines: Iterable[str] = (),
-    info_label: str = "00 - ℹ️ Информация",
-    exit_label: str = "0 - 🏠 Вернуться назад",
-    invalid_message: str = "❌ Неверная опция, пожалуйста, попробуйте снова",
+    info_label: str | None = None,
+    exit_label: str | None = None,
+    invalid_message: str | None = None,
 ) -> None:
     """Универсальный цикл интерактивного меню."""
     if (items is None) == (items_factory is None):
-        msg = "Нужно передать либо items, либо items_factory"
+        msg = t("menu.requires_items_or_factory")
         raise ValueError(msg)
 
     resolved_items_factory = items_factory
@@ -152,7 +153,7 @@ def run_menu_loop(
 
         action = actions.get(user_input)
         if action is None:
-            print(invalid_message)
+            print(invalid_message or t("common.invalid_option"))
             continue
 
         action()

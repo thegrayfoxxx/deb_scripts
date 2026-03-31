@@ -3,6 +3,7 @@ from pathlib import Path
 
 from app.bootstrap.logger import get_logger
 from app.core.subprocess import run
+from app.i18n.locale import t, tr
 
 logger = get_logger(__name__)
 
@@ -66,12 +67,22 @@ def _parse_upgradable_packages(output: str) -> list[str]:
 
 def _has_upgradable_packages() -> bool:
     """Проверяет, есть ли пакеты для apt upgrade."""
-    logger.debug("🔍 Проверка доступных обновлений (apt list --upgradable)...")
+    logger.debug(
+        tr(
+            "🔍 Проверка доступных обновлений (apt list --upgradable)...",
+            "🔍 Checking available updates (apt list --upgradable)...",
+        )
+    )
     result = run(["apt", "list", "--upgradable"], check=False)
-    logger.debug(f"📋 apt list --upgradable вывод:\n{result.stdout.strip()}")
+    logger.debug(
+        tr(
+            f"📋 apt list --upgradable вывод:\n{result.stdout.strip()}",
+            f"📋 apt list --upgradable output:\n{result.stdout.strip()}",
+        )
+    )
 
     if result.returncode != 0:
-        logger.warning("⚠️ Не удалось проверить список обновляемых пакетов")
+        logger.warning(t("update.upgradable_check_failed"))
         return False
 
     return bool(_parse_upgradable_packages(result.stdout))
@@ -80,39 +91,54 @@ def _has_upgradable_packages() -> bool:
 def update_os() -> None:
     """Обновляет индексы пакетов по TTL и выполняет upgrade только при наличии обновлений."""
     try:
-        logger.info("🔄 Проверка обновлений ОС...")
+        logger.info(t("update.start"))
 
         now = datetime.now(UTC)
         last_update_time = _get_last_update_time()
 
         if _should_refresh_package_lists(now, last_update_time):
-            logger.debug("📦 Обновление списков пакетов (apt update)...")
+            logger.debug(
+                tr(
+                    "📦 Обновление списков пакетов (apt update)...",
+                    "📦 Refreshing package lists (apt update)...",
+                )
+            )
             update_result = run(["apt", "update", "-y"], check=False)
-            logger.debug(f"📋 apt update вывод:\n{update_result.stdout.strip()}")
+            logger.debug(
+                tr(
+                    f"📋 apt update вывод:\n{update_result.stdout.strip()}",
+                    f"📋 apt update output:\n{update_result.stdout.strip()}",
+                )
+            )
 
             if update_result.returncode != 0:
-                logger.error("❌ Ошибка при обновлении списков пакетов")
+                logger.error(t("update.refresh_failed"))
                 return
         else:
-            logger.info("ℹ️ Списки пакетов ещё свежие, apt update пропущен")
+            logger.info(t("update.refresh_skipped"))
 
         if not _has_upgradable_packages():
-            logger.info("✅ Обновлений не найдено")
+            logger.info(t("update.no_updates"))
             return
 
-        logger.info("⬆️ Найдены обновления, запускаю apt upgrade...")
+        logger.info(t("update.upgrade_start"))
         upgrade_result = run(["apt", "upgrade", "-y"], check=False)
-        logger.debug(f"📋 apt upgrade вывод:\n{upgrade_result.stdout.strip()}")
+        logger.debug(
+            tr(
+                f"📋 apt upgrade вывод:\n{upgrade_result.stdout.strip()}",
+                f"📋 apt upgrade output:\n{upgrade_result.stdout.strip()}",
+            )
+        )
 
         if upgrade_result.returncode != 0:
-            logger.error("❌ Ошибка при установке обновлений")
+            logger.error(t("update.upgrade_failed"))
             return
 
-        logger.info("✅ ОС успешно обновлена")
+        logger.info(t("update.success"))
 
     except FileNotFoundError as e:
-        logger.error(f"📁 Команда не найдена (проверьте наличие apt): {e}")
+        logger.error(t("update.command_not_found", error=e))
     except PermissionError as e:
-        logger.error(f"🔐 Ошибка прав доступа (требуется root?): {e}")
+        logger.error(t("update.permission_error", error=e))
     except Exception:
-        logger.exception("💥 Критическая ошибка при обновлении ОС")
+        logger.exception(t("update.fatal_error"))
