@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/github/license/thegrayfoxxx/deb_scripts?color=2d6a4f)
 ![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
-![Platform](https://img.shields.io/badge/Linux-Debian%20%7C%20Ubuntu-A81D33?logo=debian&logoColor=white)
+![Platform](https://img.shields.io/badge/Linux-Debian%2012%2B%20%7C%20Ubuntu%2022.04%2B-A81D33?logo=debian&logoColor=white)
 ![Release](https://img.shields.io/github/v/tag/thegrayfoxxx/deb_scripts?sort=semver&label=release)
 ![Coverage](https://img.shields.io/badge/coverage-89%25-0a7f5a)
 
@@ -24,7 +24,7 @@ If you are already running as `root`, use:
 ./run.sh
 ```
 
-Requirements: `Python 3.12+`, Debian/Ubuntu or another `apt`-based distribution, and `root` privileges for system-changing operations.
+Requirements: `Python 3.12+`, `Debian 12+` or `Ubuntu 22.04+`, and `root` privileges for system-changing operations.
 
 ## 💻 CLI
 

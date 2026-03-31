@@ -26,9 +26,14 @@ Current project version: `2.1.3`.
 
 - `Python 3.12+`
 - preinstalled `git`
-- Debian, Ubuntu, or another `apt`-based distribution
+- `Debian 12+` or `Ubuntu 22.04+`
 - access to `apt`
 - `root` privileges for operations that change system state
+
+Minimum supported distributions:
+
+- `Debian 12+`
+- `Ubuntu 22.04+`
 
 The project is designed to run as `root`. For a regular user, the normal launch command is `sudo ./run.sh`.
 
