@@ -36,6 +36,9 @@ class TestUVService:
 
             assert self.service._is_uv_installed() is False
 
+    def test_get_info_lines_returns_service_info(self):
+        assert self.service.get_info_lines() == UVService.INFO_LINES
+
     def test_get_uv_paths_success(self, mock_subprocess_result):
         """Тест успешного получения путей uv"""
         python_mock = mock_subprocess_result(returncode=0, stdout="/home/user/.cache/uv/python")
@@ -97,6 +100,12 @@ class TestUVService:
         assert "Версия uv: uv 0.7.0" in status
         assert "PATH настроен: нет" in status
         mock_run.assert_any_call([str(executable), "--version"], check=False)
+
+    def test_get_status_returns_not_installed_when_uv_is_missing(self):
+        with patch.object(UVService, "_is_uv_installed", return_value=False):
+            status = self.service.get_status()
+
+        assert status == "Статус установки: 🔴 не установлен"
 
     @patch("os.environ.get", return_value="/usr/bin:/bin")
     @patch("app.services.uv.run")
@@ -192,6 +201,27 @@ class TestUVService:
 
             # Verify the sequence of calls
             assert mock_run.call_count >= 3  # At least check version, download, install
+
+    def test_install_continues_when_curl_package_install_warns(self, mock_subprocess_result):
+        side_effects = [
+            mock_subprocess_result(returncode=1, stdout=""),  # uv not installed
+            mock_subprocess_result(
+                returncode=1, stdout="curl already installed"
+            ),  # apt install curl
+            mock_subprocess_result(returncode=0, stdout="downloaded"),  # curl download
+            mock_subprocess_result(returncode=0, stdout="installed"),  # sh installer
+            mock_subprocess_result(returncode=0, stdout=""),  # rm installer
+            mock_subprocess_result(returncode=0, stdout="uv 0.8.0"),  # final install check
+            mock_subprocess_result(returncode=0, stdout="uv 0.8.0"),  # final version check
+        ]
+
+        with (
+            patch("app.services.uv.run") as mock_run,
+            patch("os.environ.get", return_value="/root/.local/bin:/usr/bin"),
+        ):
+            mock_run.side_effect = side_effects
+
+            assert self.service.install() is True
 
     # Пропускаем этот тест, так как сложно мокировать все вызовы в методе удаления
 
@@ -318,6 +348,29 @@ class TestUVService:
 
                     # Should log exception
                     mock_logger.exception.assert_called()
+
+    def test_uninstall_succeeds_with_env_cleanup_and_missing_paths(self):
+        with (
+            patch.object(UVService, "_is_uv_installed", side_effect=[True, False]),
+            patch.object(UVService, "_get_uv_paths", return_value=None),
+            patch.object(UVService, "ENV_FILE") as mock_env_file,
+            patch("app.services.uv.run") as mock_run,
+        ):
+            mock_env_file.exists.return_value = True
+            mock_run.side_effect = [
+                Mock(returncode=1, stdout="cache cleanup warning"),
+                Mock(returncode=0, stdout=""),
+                Mock(returncode=0, stdout=""),
+            ]
+
+            assert self.service.uninstall() is True
+
+    def test_uninstall_returns_false_on_permission_error_from_run(self):
+        with (
+            patch.object(UVService, "_is_uv_installed", return_value=True),
+            patch("app.services.uv.run", side_effect=PermissionError("Permission denied")),
+        ):
+            assert self.service.uninstall() is False
 
     def test_is_uv_installed_general_exception(self):
         """Тест проверки установки uv с общей ошибкой"""

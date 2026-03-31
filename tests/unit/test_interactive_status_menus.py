@@ -272,6 +272,46 @@ def test_uv_interactive_status_action_prints_service_status():
     mock_print.assert_any_call("uv: installed")
 
 
+def test_bbr_info_screen_uses_service_info_lines():
+    with patch("builtins.input"), patch("builtins.print") as mock_print:
+        bbr.display_bbr_info()
+
+    printed_texts = [call.args[0] for call in mock_print.call_args_list if call.args]
+    assert any("🌐 BBR" in text for text in printed_texts)
+
+
+def test_docker_info_screen_uses_service_info_lines():
+    with patch("builtins.input"), patch("builtins.print") as mock_print:
+        docker.display_docker_info()
+
+    printed_texts = [call.args[0] for call in mock_print.call_args_list if call.args]
+    assert any("🐳 Docker" in text for text in printed_texts)
+
+
+def test_fail2ban_info_screen_uses_service_info_lines():
+    with patch("builtins.input"), patch("builtins.print") as mock_print:
+        fail2ban.display_fail2ban_info()
+
+    printed_texts = [call.args[0] for call in mock_print.call_args_list if call.args]
+    assert any("🛡️ Fail2Ban" in text for text in printed_texts)
+
+
+def test_trafficguard_info_screen_uses_service_info_lines():
+    with patch("builtins.input"), patch("builtins.print") as mock_print:
+        traffic_guard.display_trafficguard_info()
+
+    printed_texts = [call.args[0] for call in mock_print.call_args_list if call.args]
+    assert any("⚔️ TrafficGuard" in text for text in printed_texts)
+
+
+def test_uv_info_screen_uses_service_info_lines():
+    with patch("builtins.input"), patch("builtins.print") as mock_print:
+        uv.display_uv_info()
+
+    printed_texts = [call.args[0] for call in mock_print.call_args_list if call.args]
+    assert any("🐍 UV" in text for text in printed_texts)
+
+
 def test_ufw_interactive_status_action_prints_service_status():
     service = Mock()
     service.is_installed.return_value = True
