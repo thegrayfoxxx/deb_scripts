@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
-from app.interfaces.interactive.menu_utils import MenuItem
-from app.utils import service_registry
+from app.core import service_registry
+from app.interfaces.menu.menu_utils import MenuItem
 
 
 def test_service_registry_codes_are_unique():
@@ -42,7 +42,7 @@ def test_build_main_menu_items_uses_registry_entries():
     with (
         patch.object(service_registry, "SERVICE_REGISTRY", (entry,)),
         patch(
-            "app.utils.service_registry._load_attr",
+            "app.core.service_registry._load_attr",
             side_effect=[MagicMock(return_value=service), action],
         ),
     ):

@@ -1,9 +1,9 @@
+from app.bootstrap.args import parse_args
+from app.bootstrap.logger import get_logger, set_default_console_level
+from app.bootstrap.permissions import check_root
+from app.bootstrap.update_os import update_os
 from app.interfaces.cli.non_interactive import run_non_interactive_commands
-from app.interfaces.interactive.run import run_interactive_script
-from app.utils.args_utils import parse_args
-from app.utils.logger import get_logger, set_default_console_level
-from app.utils.permission_utils import check_root
-from app.utils.update_utils import update_os
+from app.interfaces.menu.run import run_interactive_script
 
 logger = get_logger(__name__)
 

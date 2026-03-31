@@ -1,8 +1,8 @@
-"""Тесты для модуля app.utils.update_utils"""
+"""Тесты для модуля app.bootstrap.update_os"""
 
 from unittest.mock import patch
 
-from app.utils.update_utils import update_os
+from app.bootstrap.update_os import update_os
 
 
 class TestUpdateUtils:
@@ -17,8 +17,8 @@ class TestUpdateUtils:
         upgrade_result = mock_subprocess_result(returncode=0, stdout="Installing updates...")
 
         with (
-            patch("app.utils.update_utils.run") as mock_run,
-            patch("app.utils.update_utils.logger") as mock_logger,
+            patch("app.bootstrap.update_os.run") as mock_run,
+            patch("app.bootstrap.update_os.logger") as mock_logger,
         ):
             # Мокаем последовательность вызовов: apt update -> apt upgrade
             mock_run.side_effect = [update_result, upgrade_result]
@@ -43,8 +43,8 @@ class TestUpdateUtils:
         update_result = mock_subprocess_result(returncode=1, stderr="Failed to fetch updates")
 
         with (
-            patch("app.utils.update_utils.run") as mock_run,
-            patch("app.utils.update_utils.logger") as mock_logger,
+            patch("app.bootstrap.update_os.run") as mock_run,
+            patch("app.bootstrap.update_os.logger") as mock_logger,
         ):
             mock_run.return_value = update_result
 
@@ -66,8 +66,8 @@ class TestUpdateUtils:
         upgrade_result = mock_subprocess_result(returncode=1, stderr="Upgrade failed")
 
         with (
-            patch("app.utils.update_utils.run") as mock_run,
-            patch("app.utils.update_utils.logger") as mock_logger,
+            patch("app.bootstrap.update_os.run") as mock_run,
+            patch("app.bootstrap.update_os.logger") as mock_logger,
         ):
             mock_run.side_effect = [update_result, upgrade_result]
 
@@ -88,8 +88,8 @@ class TestUpdateUtils:
     def test_update_os_file_not_found_error(self):
         """Тест обработки ошибки FileNotFoundError"""
         with (
-            patch("app.utils.update_utils.run") as mock_run,
-            patch("app.utils.update_utils.logger") as mock_logger,
+            patch("app.bootstrap.update_os.run") as mock_run,
+            patch("app.bootstrap.update_os.logger") as mock_logger,
         ):
             mock_run.side_effect = FileNotFoundError("apt command not found")
 
@@ -104,8 +104,8 @@ class TestUpdateUtils:
     def test_update_os_permission_error(self):
         """Тест обработки ошибки PermissionError"""
         with (
-            patch("app.utils.update_utils.run") as mock_run,
-            patch("app.utils.update_utils.logger") as mock_logger,
+            patch("app.bootstrap.update_os.run") as mock_run,
+            patch("app.bootstrap.update_os.logger") as mock_logger,
         ):
             mock_run.side_effect = PermissionError("Permission denied")
 
@@ -120,8 +120,8 @@ class TestUpdateUtils:
     def test_update_os_general_exception(self):
         """Тест обработки общей ошибки"""
         with (
-            patch("app.utils.update_utils.run") as mock_run,
-            patch("app.utils.update_utils.logger") as mock_logger,
+            patch("app.bootstrap.update_os.run") as mock_run,
+            patch("app.bootstrap.update_os.logger") as mock_logger,
         ):
             mock_run.side_effect = Exception("General error occurred")
 
@@ -142,8 +142,8 @@ class TestUpdateUtils:
         )
 
         with (
-            patch("app.utils.update_utils.run") as mock_run,
-            patch("app.utils.update_utils.logger") as mock_logger,
+            patch("app.bootstrap.update_os.run") as mock_run,
+            patch("app.bootstrap.update_os.logger") as mock_logger,
         ):
             mock_run.side_effect = [update_result, upgrade_result]
 

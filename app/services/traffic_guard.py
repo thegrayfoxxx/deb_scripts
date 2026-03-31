@@ -3,10 +3,10 @@ import subprocess
 import time
 from pathlib import Path
 
+from app.bootstrap.logger import get_logger
+from app.core.status import format_status_snapshot
+from app.core.subprocess import run
 from app.services.ufw import UfwService
-from app.utils.logger import get_logger
-from app.utils.status_text import format_status_snapshot
-from app.utils.subprocess_utils import run
 
 logger = get_logger(__name__)
 

@@ -47,6 +47,7 @@ Project-specific skills лежат в `.agents/skills/`.
 - `main.py` — точка входа и единичный вызов `update_os()`
 - `app/services/` — операционная логика
 - `app/interfaces/cli/` — неинтерактивный CLI
-- `app/interfaces/interactive/` — интерактивные меню
-- `app/utils/` — общие helper'ы
+- `app/interfaces/menu/` — интерактивные меню
+- `app/bootstrap/` — запуск, аргументы, логирование и preflight-проверки
+- `app/core/` — общие application helper'ы и registry
 - `tests/` — unit, integration и system coverage

@@ -1,16 +1,16 @@
-"""Тесты для модуля app.utils.permission_utils"""
+"""Тесты для модуля app.bootstrap.permissions"""
 
 from unittest.mock import patch
 
 import pytest
 
-from app.utils.permission_utils import check_root
+from app.bootstrap.permissions import check_root
 
 
 class TestPermissionUtils:
     """Тесты для утилит проверки разрешений"""
 
-    @patch("app.utils.permission_utils.os.geteuid")
+    @patch("app.bootstrap.permissions.os.geteuid")
     def test_check_root_with_root_permissions(self, mock_geteuid):
         """Тест проверки прав суперпользователя когда пользователь root"""
         # Мокаем os.geteuid чтобы возвращал 0 (root)
@@ -22,7 +22,7 @@ class TestPermissionUtils:
         # Проверяем, что geteuid был вызван
         mock_geteuid.assert_called_once()
 
-    @patch("app.utils.permission_utils.os.geteuid")
+    @patch("app.bootstrap.permissions.os.geteuid")
     def test_check_root_without_root_permissions(self, mock_geteuid):
         """Тест проверки прав суперпользователя когда пользователь не root"""
         # Мокаем os.geteuid чтобы возвращал 1000 (обычный пользователь)

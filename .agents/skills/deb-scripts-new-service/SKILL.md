@@ -20,7 +20,7 @@ Use this skill when the task introduces a new managed component such as a firewa
 Create:
 
 - `app/services/<service>.py`
-- `app/interfaces/interactive/<service>.py`
+- `app/interfaces/menu/<service>.py`
 - `tests/unit/test_<service>.py`
 
 Add integration or system tests when the behavior interacts with real subprocesses, files, or host capabilities.
@@ -36,9 +36,9 @@ Add integration or system tests when the behavior interacts with real subprocess
 
 Update:
 
-- `app/interfaces/interactive/run.py`
+- `app/interfaces/menu/run.py`
 - `app/interfaces/cli/non_interactive.py`
-- `app/utils/args_utils.py`
+- `app/bootstrap/args.py`
 
 Make sure the service code receives a unique numeric code in the non-interactive CLI map.
 

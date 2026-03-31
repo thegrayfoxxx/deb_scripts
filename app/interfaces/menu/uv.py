@@ -1,4 +1,4 @@
-from app.interfaces.interactive.menu_utils import (
+from app.interfaces.menu.menu_utils import (
     build_standard_service_menu_items,
     prompt_service_submenu,
     return_to_main_menu,

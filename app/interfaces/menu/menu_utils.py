@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Callable, Iterable, Sequence, TypeAlias
 
-from app.utils.status_text import status_badge
+from app.core.status import status_badge
 
 SERVICE_EXIT_LABEL = "0 - 🏠 Вернуться в главное меню"
 SERVICE_EXIT_MESSAGE = "🏠 Возврат в главное меню..."

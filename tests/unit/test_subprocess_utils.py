@@ -2,13 +2,13 @@
 
 from unittest.mock import Mock, patch
 
-from app.utils.subprocess_utils import is_command_available, run
+from app.core.subprocess import is_command_available, run
 
 
 class TestSubprocessUtils:
     """Тесты для утилит запуска subprocess."""
 
-    @patch("app.utils.subprocess_utils.subprocess.run")
+    @patch("app.core.subprocess.subprocess.run")
     def test_run_success_with_check_true(self, mock_subprocess_run):
         """Тест запуска команды с check=True при успешном выполнении"""
         mock_result = Mock()
@@ -22,7 +22,7 @@ class TestSubprocessUtils:
             args=["echo", "hello"], check=True, text=True, capture_output=True
         )
 
-    @patch("app.utils.subprocess_utils.subprocess.run")
+    @patch("app.core.subprocess.subprocess.run")
     def test_run_with_check_false_and_success(self, mock_subprocess_run):
         """Тест запуска команды с check=False при успешном выполнении"""
         mock_result = Mock()
@@ -36,7 +36,7 @@ class TestSubprocessUtils:
             args=["echo", "hello"], check=False, text=True, capture_output=True
         )
 
-    @patch("app.utils.subprocess_utils.subprocess.run")
+    @patch("app.core.subprocess.subprocess.run")
     def test_run_with_check_false_and_failure(self, mock_subprocess_run):
         """Тест запуска команды с check=False при неудачном выполнении"""
         mock_error = Mock()
@@ -53,7 +53,7 @@ class TestSubprocessUtils:
         mock_subprocess_run.side_effect = called_process_error
 
         # We need to handle this carefully - let's recreate the scenario properly
-        with patch("app.utils.subprocess_utils.subprocess.run") as mock_run:
+        with patch("app.core.subprocess.subprocess.run") as mock_run:
             from subprocess import CalledProcessError
 
             error = CalledProcessError(1, ["echo", "hello"])
@@ -66,7 +66,7 @@ class TestSubprocessUtils:
             assert hasattr(result, "returncode")
             assert result.returncode == 1
 
-    @patch("app.utils.subprocess_utils.subprocess.run")
+    @patch("app.core.subprocess.subprocess.run")
     def test_run_with_additional_kwargs(self, mock_subprocess_run):
         """Тест запуска команды с дополнительными параметрами"""
         mock_result = Mock()
@@ -81,7 +81,7 @@ class TestSubprocessUtils:
 
     def test_is_command_available_success(self):
         """Тест проверки доступности команды при её наличии"""
-        with patch("app.utils.subprocess_utils.run") as mock_run:
+        with patch("app.core.subprocess.run") as mock_run:
             mock_result = Mock()
             mock_result.returncode = 0
             mock_run.return_value = mock_result
@@ -93,7 +93,7 @@ class TestSubprocessUtils:
 
     def test_is_command_available_failure_returncode(self):
         """Тест проверки доступности команды при её отсутствии (ненулевой код возврата)"""
-        with patch("app.utils.subprocess_utils.run") as mock_run:
+        with patch("app.core.subprocess.run") as mock_run:
             mock_result = Mock()
             mock_result.returncode = 1
             mock_run.return_value = mock_result
@@ -105,7 +105,7 @@ class TestSubprocessUtils:
 
     def test_is_command_available_file_not_found(self):
         """Тест проверки доступности команды при её отсутствии (FileNotFoundError)"""
-        with patch("app.utils.subprocess_utils.run") as mock_run:
+        with patch("app.core.subprocess.run") as mock_run:
             mock_run.side_effect = FileNotFoundError("Command not found")
 
             result = is_command_available("nonexistent_cmd")
@@ -113,7 +113,7 @@ class TestSubprocessUtils:
             assert result is False
             mock_run.assert_called_once_with(["nonexistent_cmd", "--version"], check=False)
 
-    @patch("app.utils.subprocess_utils.subprocess.run")
+    @patch("app.core.subprocess.subprocess.run")
     def test_run_exception_propagates_when_check_true(self, mock_subprocess_run):
         """Тест что исключение propagates при check=True"""
         from subprocess import CalledProcessError
@@ -127,7 +127,7 @@ class TestSubprocessUtils:
         except CalledProcessError:
             pass
 
-    @patch("app.utils.subprocess_utils.subprocess.run")
+    @patch("app.core.subprocess.subprocess.run")
     def test_run_handles_text_and_capture_output_params(self, mock_subprocess_run):
         """Тест что run правильно передает параметры text и capture_output"""
         mock_result = Mock()

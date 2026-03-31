@@ -1,6 +1,6 @@
 import argparse
 
-from app.utils.service_registry import format_service_codes_help
+from app.core.service_registry import format_service_codes_help
 
 
 def parse_args(argv: list[str] | None = None):

@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock, patch
 
-from app.interfaces.interactive import ufw
+from app.interfaces.menu import ufw
 
 
 class TestUfwInteractive:
@@ -10,7 +10,7 @@ class TestUfwInteractive:
 
     def test_interactive_run_calls_menu_loop(self):
         """Тест что интерактивный запуск вызывает цикл меню."""
-        with patch("app.interfaces.interactive.ufw.run_menu_loop") as mock_run_menu_loop:
+        with patch("app.interfaces.menu.ufw.run_menu_loop") as mock_run_menu_loop:
             ufw.interactive_run()
             mock_run_menu_loop.assert_called_once()
 

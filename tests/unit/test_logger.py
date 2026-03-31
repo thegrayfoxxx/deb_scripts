@@ -3,7 +3,7 @@
 import logging
 from unittest.mock import Mock, patch
 
-from app.utils.logger import get_logger, set_default_console_level
+from app.bootstrap.logger import get_logger, set_default_console_level
 
 
 class TestLogger:

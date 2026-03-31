@@ -1,4 +1,9 @@
-from app.interfaces.interactive.menu_utils import (
+from app.bootstrap.logger import get_logger
+from app.core.status import (
+    activation_status_badge,
+    installation_status_badge,
+)
+from app.interfaces.menu.menu_utils import (
     MenuItem,
     prompt_service_submenu,
     return_to_main_menu,
@@ -6,11 +11,6 @@ from app.interfaces.interactive.menu_utils import (
     show_info_screen,
 )
 from app.services.ufw import UfwService
-from app.utils.logger import get_logger
-from app.utils.status_text import (
-    activation_status_badge,
-    installation_status_badge,
-)
 
 logger = get_logger(__name__)
 

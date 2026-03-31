@@ -2,8 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
-from app.interfaces.interactive.menu_utils import MenuItem
-from app.interfaces.interactive.run import run_interactive_script
+from app.interfaces.menu.menu_utils import MenuItem
+from app.interfaces.menu.run import run_interactive_script
 
 
 def _run_main_menu() -> None:
@@ -52,7 +52,7 @@ class TestInteractiveRun:
     def test_run_interactive_script_select_ufw(self, mock_print, mock_input):
         items, actions = _menu_items_with_actions()
 
-        with patch("app.interfaces.interactive.run.build_main_menu_items", return_value=items):
+        with patch("app.interfaces.menu.run.build_main_menu_items", return_value=items):
             _run_main_menu()
 
         actions["1"].assert_called_once()
@@ -62,7 +62,7 @@ class TestInteractiveRun:
     def test_run_interactive_script_select_bbr(self, mock_print, mock_input):
         items, actions = _menu_items_with_actions()
 
-        with patch("app.interfaces.interactive.run.build_main_menu_items", return_value=items):
+        with patch("app.interfaces.menu.run.build_main_menu_items", return_value=items):
             _run_main_menu()
 
         actions["2"].assert_called_once()
@@ -72,7 +72,7 @@ class TestInteractiveRun:
     def test_run_interactive_script_select_docker(self, mock_print, mock_input):
         items, actions = _menu_items_with_actions()
 
-        with patch("app.interfaces.interactive.run.build_main_menu_items", return_value=items):
+        with patch("app.interfaces.menu.run.build_main_menu_items", return_value=items):
             _run_main_menu()
 
         actions["3"].assert_called_once()
@@ -82,7 +82,7 @@ class TestInteractiveRun:
     def test_run_interactive_script_select_fail2ban(self, mock_print, mock_input):
         items, actions = _menu_items_with_actions()
 
-        with patch("app.interfaces.interactive.run.build_main_menu_items", return_value=items):
+        with patch("app.interfaces.menu.run.build_main_menu_items", return_value=items):
             _run_main_menu()
 
         actions["4"].assert_called_once()
@@ -92,7 +92,7 @@ class TestInteractiveRun:
     def test_run_interactive_script_select_traffic_guard(self, mock_print, mock_input):
         items, actions = _menu_items_with_actions()
 
-        with patch("app.interfaces.interactive.run.build_main_menu_items", return_value=items):
+        with patch("app.interfaces.menu.run.build_main_menu_items", return_value=items):
             _run_main_menu()
 
         actions["5"].assert_called_once()
@@ -102,7 +102,7 @@ class TestInteractiveRun:
     def test_run_interactive_script_select_uv(self, mock_print, mock_input):
         items, actions = _menu_items_with_actions()
 
-        with patch("app.interfaces.interactive.run.build_main_menu_items", return_value=items):
+        with patch("app.interfaces.menu.run.build_main_menu_items", return_value=items):
             _run_main_menu()
 
         actions["6"].assert_called_once()

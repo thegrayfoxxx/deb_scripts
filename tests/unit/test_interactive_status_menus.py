@@ -1,6 +1,6 @@
 from unittest.mock import Mock, patch
 
-from app.interfaces.interactive import (
+from app.interfaces.menu import (
     bbr,
     docker,
     fail2ban,
@@ -9,7 +9,7 @@ from app.interfaces.interactive import (
     ufw,
     uv,
 )
-from app.interfaces.interactive.menu_utils import MenuItem
+from app.interfaces.menu.menu_utils import MenuItem
 
 
 def test_bbr_menu_displays_inline_status():
@@ -95,7 +95,7 @@ def test_ufw_menu_displays_inline_status():
     service.is_active.return_value = False
 
     with (
-        patch("app.interfaces.interactive.ufw.UfwService", return_value=service),
+        patch("app.interfaces.menu.ufw.UfwService", return_value=service),
         patch("builtins.input", return_value="0") as mock_input,
         patch("builtins.print"),
     ):
@@ -169,7 +169,7 @@ def test_main_menu_displays_inline_statuses():
 
     with (
         patch(
-            "app.interfaces.interactive.run.build_main_menu_items",
+            "app.interfaces.menu.run.build_main_menu_items",
             return_value=menu_items,
         ),
         patch("builtins.input", return_value="0") as mock_input,
@@ -194,7 +194,7 @@ def test_bbr_interactive_status_action_prints_service_status():
     service.get_status.return_value = "BBR: disabled"
 
     with (
-        patch("app.interfaces.interactive.bbr.BBRService", return_value=service),
+        patch("app.interfaces.menu.bbr.BBRService", return_value=service),
         patch("builtins.input", side_effect=["5", "0"]),
         patch("builtins.print") as mock_print,
     ):
@@ -209,7 +209,7 @@ def test_docker_interactive_status_action_prints_service_status():
     service.get_status.return_value = "Docker: installed"
 
     with (
-        patch("app.interfaces.interactive.docker.DockerService", return_value=service),
+        patch("app.interfaces.menu.docker.DockerService", return_value=service),
         patch("builtins.input", side_effect=["3", "0"]),
         patch("builtins.print") as mock_print,
     ):
@@ -224,7 +224,7 @@ def test_fail2ban_interactive_status_action_prints_service_status():
     service.get_status.return_value = "Fail2Ban: installed"
 
     with (
-        patch("app.interfaces.interactive.fail2ban.Fail2BanService", return_value=service),
+        patch("app.interfaces.menu.fail2ban.Fail2BanService", return_value=service),
         patch("builtins.input", side_effect=["5", "0"]),
         patch("builtins.print") as mock_print,
     ):
@@ -240,7 +240,7 @@ def test_trafficguard_interactive_status_action_prints_service_status():
 
     with (
         patch(
-            "app.interfaces.interactive.traffic_guard.TrafficGuardService",
+            "app.interfaces.menu.traffic_guard.TrafficGuardService",
             return_value=service,
         ),
         patch("builtins.input", side_effect=["3", "0"]),
@@ -257,7 +257,7 @@ def test_uv_interactive_status_action_prints_service_status():
     service.get_status.return_value = "uv: installed"
 
     with (
-        patch("app.interfaces.interactive.uv.UVService", return_value=service),
+        patch("app.interfaces.menu.uv.UVService", return_value=service),
         patch("builtins.input", side_effect=["3", "0"]),
         patch("builtins.print") as mock_print,
     ):
@@ -273,7 +273,7 @@ def test_ufw_interactive_status_action_prints_service_status():
     service.get_status.return_value = "Status: active"
 
     with (
-        patch("app.interfaces.interactive.ufw.UfwService", return_value=service),
+        patch("app.interfaces.menu.ufw.UfwService", return_value=service),
         patch("builtins.input", side_effect=["4", "0"]),
         patch("builtins.print") as mock_print,
     ):

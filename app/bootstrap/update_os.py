@@ -1,5 +1,5 @@
-from app.utils.logger import get_logger
-from app.utils.subprocess_utils import run
+from app.bootstrap.logger import get_logger
+from app.core.subprocess import run
 
 logger = get_logger(__name__)
 

@@ -1,5 +1,5 @@
-from app.utils.logger import get_logger
-from app.utils.service_registry import get_service_entry
+from app.bootstrap.logger import get_logger
+from app.core.service_registry import get_service_entry
 
 logger = get_logger(__name__)
 

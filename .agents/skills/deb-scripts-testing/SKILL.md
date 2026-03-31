@@ -61,7 +61,7 @@ Run `uvx ty check` when a change affects:
 Prefer checking only the touched scope when the change is small:
 
 ```bash
-uvx ty check app/services/protocols.py app/utils/service_registry.py
+uvx ty check app/services/protocols.py app/core/service_registry.py
 uvx ty check app/services app/interfaces
 ```
 

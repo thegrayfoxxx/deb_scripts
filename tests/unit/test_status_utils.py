@@ -1,4 +1,4 @@
-from app.utils.status_text import (
+from app.core.status import (
     activation_status_badge,
     format_status_snapshot,
     installation_status_badge,

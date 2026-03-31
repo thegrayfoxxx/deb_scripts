@@ -25,7 +25,7 @@ def mock_subprocess_result():
 @pytest.fixture
 def mock_logger():
     """Фикстура для mock логгера"""
-    with patch("app.utils.logger.get_logger") as mock_get_logger:
+    with patch("app.bootstrap.logger.get_logger") as mock_get_logger:
         mock_logger_instance = Mock()
         mock_get_logger.return_value = mock_logger_instance
         yield mock_logger_instance
@@ -70,7 +70,7 @@ def mock_docker_write_config_file():
 @pytest.fixture
 def mock_all_subprocess_calls():
     """Фикстура для мокирования всех вызовов subprocess в интеграционных тестах"""
-    with patch("app.utils.subprocess_utils.run") as mock_run:
+    with patch("app.core.subprocess.run") as mock_run:
         yield mock_run
 
 
@@ -79,7 +79,7 @@ def mock_system_commands():
     """Фикстура для мокирования системных команд в интеграционных тестах"""
     with (
         patch("os.geteuid") as mock_geteuid,
-        patch("app.utils.subprocess_utils.run") as mock_run,
+        patch("app.core.subprocess.run") as mock_run,
     ):
         yield mock_geteuid, mock_run
 

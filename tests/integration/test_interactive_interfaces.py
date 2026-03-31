@@ -9,7 +9,7 @@ import pytest
 # Добавляем путь к директории app
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "app"))
 
-from app.interfaces.interactive import bbr, docker, fail2ban, run, traffic_guard, uv
+from app.interfaces.menu import bbr, docker, fail2ban, run, traffic_guard, uv
 
 
 @pytest.mark.integration
@@ -23,7 +23,7 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.docker.DockerService",
+                "app.interfaces.menu.docker.DockerService",
                 return_value=mock_docker_service,
             ),
             patch(
@@ -48,7 +48,7 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.docker.DockerService",
+                "app.interfaces.menu.docker.DockerService",
                 return_value=mock_docker_service,
             ),
             patch(
@@ -73,7 +73,7 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.bbr.BBRService",
+                "app.interfaces.menu.bbr.BBRService",
                 return_value=mock_bbr_service,
             ),
             patch(
@@ -98,7 +98,7 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.bbr.BBRService",
+                "app.interfaces.menu.bbr.BBRService",
                 return_value=mock_bbr_service,
             ),
             patch(
@@ -123,7 +123,7 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.fail2ban.Fail2BanService",
+                "app.interfaces.menu.fail2ban.Fail2BanService",
                 return_value=mock_fail2ban_service,
             ),
             patch(
@@ -148,7 +148,7 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.fail2ban.Fail2BanService",
+                "app.interfaces.menu.fail2ban.Fail2BanService",
                 return_value=mock_fail2ban_service,
             ),
             patch(
@@ -173,7 +173,7 @@ class TestInteractiveInterfacesIntegration:
                 "builtins.input", side_effect=["3", "0", "0"]
             ),  # Выбираем Docker, затем выход из Docker, затем выход из главного
             patch("builtins.print"),
-            patch("app.interfaces.interactive.docker.interactive_run") as mock_docker_run,
+            patch("app.interfaces.menu.docker.interactive_run") as mock_docker_run,
         ):
             try:
                 run.run_interactive_script()
@@ -191,7 +191,7 @@ class TestInteractiveInterfacesIntegration:
                 "builtins.input", side_effect=["2", "0", "0"]
             ),  # Выбираем BBR, затем выход из BBR, затем выход из главного
             patch("builtins.print"),
-            patch("app.interfaces.interactive.bbr.interactive_run") as mock_bbr_run,
+            patch("app.interfaces.menu.bbr.interactive_run") as mock_bbr_run,
         ):
             try:
                 run.run_interactive_script()
@@ -231,7 +231,7 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.docker.DockerService",
+                "app.interfaces.menu.docker.DockerService",
                 return_value=mock_docker_service,
             ),
             patch(
@@ -256,7 +256,7 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.docker.DockerService",
+                "app.interfaces.menu.docker.DockerService",
                 return_value=mock_docker_service,
             ),
             patch(
@@ -302,7 +302,7 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.traffic_guard.TrafficGuardService",
+                "app.interfaces.menu.traffic_guard.TrafficGuardService",
                 return_value=mock_traffic_guard_service,
             ),
             patch(
@@ -327,7 +327,7 @@ class TestInteractiveInterfacesIntegration:
 
         with (
             patch(
-                "app.interfaces.interactive.traffic_guard.TrafficGuardService",
+                "app.interfaces.menu.traffic_guard.TrafficGuardService",
                 return_value=mock_traffic_guard_service,
             ),
             patch(
@@ -351,7 +351,7 @@ class TestInteractiveInterfacesIntegration:
         mock_uv_service = Mock()
 
         with (
-            patch("app.interfaces.interactive.uv.UVService", return_value=mock_uv_service),
+            patch("app.interfaces.menu.uv.UVService", return_value=mock_uv_service),
             patch(
                 "builtins.input", side_effect=["1", "0", "0"]
             ),  # Выбираем установку, затем выход, затем выход из главного меню
@@ -373,7 +373,7 @@ class TestInteractiveInterfacesIntegration:
         mock_uv_service = Mock()
 
         with (
-            patch("app.interfaces.interactive.uv.UVService", return_value=mock_uv_service),
+            patch("app.interfaces.menu.uv.UVService", return_value=mock_uv_service),
             patch(
                 "builtins.input", side_effect=["2", "0", "0"]
             ),  # Выбираем удаление, затем выход, затем выход из главного меню

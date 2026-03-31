@@ -21,15 +21,16 @@ Use this skill for routine work in `deb_scripts`.
 - `main.py` validates root access, runs `update_os()` once, and then dispatches to CLI or interactive mode.
 - `app/services/` contains operational logic.
 - `app/interfaces/cli/` maps CLI requests to service methods and exit codes.
-- `app/interfaces/interactive/` owns menus, status screens, and user interaction only.
-- `app/utils/` contains shared helpers; prefer reusing these instead of duplicating logic.
+- `app/interfaces/menu/` owns menus, status screens, and user interaction only.
+- `app/bootstrap/` contains startup, logging, args, and preflight helpers.
+- `app/core/` contains shared application helpers and the service registry.
 
 ## Non-negotiable rules
 
 - Keep system-changing operations idempotent.
 - Preserve the safe UFW baseline: `deny incoming`, `allow outgoing`, and SSH access.
 - Do not add `apt update/upgrade` inside individual services; OS update stays centralized in `main.py`.
-- Service code logs work and failures through `app.utils.logger`.
+- Service code logs work and failures through `app.bootstrap.logger`.
 - Interface code must not duplicate success logs already emitted by services.
 - Catch specific exceptions, log useful context, and return `False` on operational failure.
 
@@ -50,7 +51,7 @@ The external API should stay uniform even if older compatibility helpers still e
 
 - Service codes are centralized in `app/interfaces/cli/non_interactive.py`.
 - If any requested operation fails, the CLI should exit non-zero.
-- Interactive menus should use the loop-based helpers from `app/interfaces/interactive/menu_utils.py`.
+- Interactive menus should use the loop-based helpers from `app/interfaces/menu/menu_utils.py`.
 - Prefer `build_standard_service_menu_items(...)` for service submenus.
 - Service submenus must keep `00` for info and `0` for back.
 - Status output should come from shared status helpers, not ad hoc string formatting.

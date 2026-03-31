@@ -55,12 +55,12 @@ class TestUfwService:
     @patch("os.geteuid", return_value=1000)  # Non-root
     def test_install_no_root_privileges(self, mock_geteuid):
         """Test that install fails without root privileges."""
-        with patch("app.utils.logger.get_logger"):
+        with patch("app.bootstrap.logger.get_logger"):
             result = self.service.install()
             assert result is False
 
     @patch("os.geteuid", return_value=0)  # Root privileges
-    @patch("app.utils.subprocess_utils.run")
+    @patch("app.core.subprocess.run")
     def test_install_already_installed(self, mock_run, mock_geteuid):
         """Test that install succeeds when UFW is already installed."""
         # Mock is_installed to return True

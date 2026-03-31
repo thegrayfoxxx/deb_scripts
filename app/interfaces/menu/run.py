@@ -1,5 +1,5 @@
-from app.interfaces.interactive.menu_utils import run_menu_loop, show_info_screen
-from app.utils.service_registry import build_main_menu_items
+from app.core.service_registry import build_main_menu_items
+from app.interfaces.menu.menu_utils import run_menu_loop, show_info_screen
 
 PROGRAM_INFO_LINES = [
     "📋 Этот инструмент помогает автоматизировать задачи DevOps в Linux:",
