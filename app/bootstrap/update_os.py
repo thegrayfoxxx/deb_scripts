@@ -54,7 +54,11 @@ def _parse_upgradable_packages(output: str) -> list[str]:
     packages: list[str] = []
     for line in output.splitlines():
         normalized = line.strip()
-        if not normalized or normalized.startswith("Listing..."):
+        if not normalized:
+            continue
+        # Строки пакетов у apt list --upgradable имеют устойчивую форму:
+        # package/repo version arch [upgradable from: ...]
+        if "/" not in normalized or "[" not in normalized:
             continue
         packages.append(normalized)
     return packages
