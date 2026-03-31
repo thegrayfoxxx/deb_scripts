@@ -18,6 +18,7 @@ Use this skill whenever behavior changes or when you need to decide what to vali
 - Fix or refactor inside one service: update unit tests first.
 - Change CLI routing, args, exit codes, or app startup: add unit coverage for those paths.
 - Change interactive menus, menu labels, or status rendering: add unit tests for menu behavior and integration tests for flows if needed.
+- Change localization, wording, or language selection: add or update coverage for both default `ru` behavior and `--lang en` where the behavior is user-visible.
 - Change real command orchestration or install/uninstall sequencing: add integration coverage; add system coverage only when the behavior depends on the real host.
 
 ## Minimal validation by change type

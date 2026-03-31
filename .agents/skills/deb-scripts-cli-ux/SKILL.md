@@ -13,6 +13,8 @@ Use this skill for any user-visible text in CLI or interactive flows.
 - Prefer short, direct messages over chatty narration.
 - Avoid repeating the same success/failure through both `print(...)` and service logs.
 - Keep confirm prompts explicit about destructive impact.
+- Route user-facing text through `app/i18n/` instead of hardcoding strings inline.
+- Keep Russian as the default locale and preserve sane English output under `--lang en`.
 
 ## Menu rules
 
@@ -39,9 +41,12 @@ Use this skill for any user-visible text in CLI or interactive flows.
 - Menus and prompts live in interactive modules.
 - Operational progress and failures live in services.
 - Non-interactive CLI should stay terse and predictable.
+- Shared text catalogs live in `app/i18n/messages.py`; use `t(...)` for stable menu/CLI text.
+- Use `tr(...)` only for localized low-level telemetry that would be too granular for the message catalog.
 
 ## Validation
 
 - Read the output as if you were running the command over SSH on a real server.
 - Remove messages that are redundant, internal, or noisy.
 - If a message includes a command, make sure it is the exact next step the user should run.
+- When changing wording, spot-check both default `ru` output and `--lang en`.

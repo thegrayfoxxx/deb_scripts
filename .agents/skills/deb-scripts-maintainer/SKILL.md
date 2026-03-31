@@ -24,6 +24,7 @@ Use this skill for routine work in `deb_scripts`.
 - `app/interfaces/menu/` owns menus, status screens, and user interaction only.
 - `app/bootstrap/` contains startup, logging, args, and preflight helpers.
 - `app/core/` contains shared application helpers and the service registry.
+- `app/i18n/` contains locale state and shared message catalogs for user-visible text.
 
 ## Non-negotiable rules
 
@@ -60,6 +61,8 @@ Use `ManagedServiceProtocol` and `ActivatableServiceProtocol` in `app/services/p
 - Prefer `build_standard_service_menu_items(...)` for service submenus.
 - Service submenus must keep `00` for info and `0` for back.
 - Status output should come from shared status helpers, not ad hoc string formatting.
+- User-visible text should come from `app/i18n/messages.py` through `t(...)` whenever the wording is stable and reused.
+- Use `tr(...)` from `app/i18n/locale.py` only for localized low-level telemetry where dedicated message keys would add noise.
 
 ## Editing workflow
 
@@ -68,6 +71,7 @@ Use `ManagedServiceProtocol` and `ActivatableServiceProtocol` in `app/services/p
 3. Keep business logic in services and routing/UI logic in interfaces.
 4. Update `README.md` if user-facing behavior, CLI options, or supported services change.
 5. Add or adjust tests with the code change.
+6. When changing text, verify that the default `ru` flow and `--lang en` both stay coherent.
 
 ## Validation
 

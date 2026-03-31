@@ -33,6 +33,7 @@ Add integration or system tests when the behavior interacts with real subprocess
 - Keep commands idempotent and safe to rerun.
 - Add `get_info_lines()` to every service.
 - Add `activate()/deactivate()/is_active()` only for services whose runtime state differs from package installation.
+- Add service info/status text through `app/i18n/`, not hardcoded menu constants.
 
 ## Wiring checklist
 
@@ -41,6 +42,7 @@ Update:
 - `app/core/service_registry.py`
 - `app/bootstrap/args.py`
 - `app/interfaces/cli/non_interactive.py`
+- `app/i18n/messages.py` for stable menu/help/status/info text
 
 Make sure the new service gets a unique numeric code and labels in the service registry entry.
 
@@ -53,6 +55,7 @@ Make sure the new service gets a unique numeric code and labels in the service r
 - Source service info text from `service.get_info_lines()`, not a duplicated local constant.
 - Do not recurse back into the main menu.
 - Follow `deb-scripts-cli-ux` for wording and prompt design.
+- Keep new menu labels and prompts localizable through `t(...)`.
 
 ## Test checklist
 

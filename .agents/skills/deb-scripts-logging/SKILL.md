@@ -34,12 +34,14 @@ Do not emit low-level command return codes or repetitive "checking..." messages 
 - Avoid dumping raw command output to the console in normal runs.
 - Keep extra hints short and only show them when they help the user take the next step.
 - Interactive UI owns prompts and menu text; services should not duplicate that with extra chatter.
+- Keep user-visible logs localizable through `app/i18n/`.
 
 ## Separation of concerns
 
 - Interactive modules may use `print(...)` for menus, prompts, and direct status screens.
 - Services should use the logger for operational events.
 - If an interactive flow already prints per-item results, avoid duplicating the same success/failure through `INFO` logs in the service.
+- Use `t(...)` for shared operator-facing log messages and `tr(...)` for localized low-level debug strings when a catalog key would be excessive.
 
 ## Argument model
 
@@ -54,3 +56,4 @@ When refactoring logs:
 1. Run targeted tests for `args_utils`, `logger`, and touched services.
 2. Smoke-test one successful flow and one failure/degraded flow.
 3. Confirm that normal console output is readable without debug noise.
+4. If logs are user-visible, verify both default `ru` and `--lang en`.

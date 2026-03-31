@@ -45,12 +45,14 @@ Use `app/services/protocols.py` as the source of truth for the current contracts
 - `get_status()` should provide a short multi-line snapshot for humans.
 - `get_info_lines()` should return operator-facing info used by the menu layer.
 - Do not mix status reads with warning-heavy side effects.
+- Return user-facing status/info text in a localizable form that works for both default `ru` and `--lang en`.
 
 ## Integration rules
 
 - Services should not own menu flow.
 - Services should not parse CLI args.
 - Services may emit operator-oriented logs but should avoid duplicating interactive menu output.
+- Stable user-facing wording should come from `app/i18n/messages.py` via `t(...)`; localized low-level logs may use `tr(...)`.
 
 ## Related skills
 
